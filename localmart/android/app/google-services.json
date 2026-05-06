@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "433497298997",
+    "project_id": "localmart123123",
+    "storage_bucket": "localmart123123.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:433497298997:android:156fd99395644d25f1b97c",
+        "android_client_info": {
+          "package_name": "com.example.localmart"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "433497298997-8ei6o7fcejg30nc0j89mi27l1kdcttpv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.localmart",
+            "certificate_hash": "f0eee53afcb38e44fc0f1b978ad6c40527e0e734"
+          }
+        },
+        {
+          "client_id": "433497298997-v1lp7391tarvsld9brml13e0or9cqaq2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDlA-ZOkuIqLYOCkQNNDwab-Obdk3zhFho"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "433497298997-v1lp7391tarvsld9brml13e0or9cqaq2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
