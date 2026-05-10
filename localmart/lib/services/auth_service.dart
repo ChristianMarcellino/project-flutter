@@ -4,9 +4,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-late ValueNotifier<AuthService> authService;
-
-class AuthService {
+final AuthService authService = AuthService();
+class AuthService extends ChangeNotifier {
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
   User? get currentUser => firebaseAuth.currentUser;
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
@@ -17,6 +16,9 @@ class AuthService {
     if (!kIsWeb) {
       _initializeGoogleSignIn();
     }
+    firebaseAuth.authStateChanges().listen((_) {
+      notifyListeners();
+    });
   }
 
   Future<void> _initializeGoogleSignIn() async {
@@ -60,6 +62,7 @@ class AuthService {
         return await firebaseAuth.signInWithPopup(
           googleProvider,
         );
+        
       }
 
       await _ensureGoogleSignInInitialized();
@@ -84,10 +87,17 @@ class AuthService {
         idToken: idToken,
         accessToken: clientAuth.accessToken,
       );
+      
 
-      return await firebaseAuth.signInWithCredential(
+      UserCredential userCredential = await firebaseAuth.signInWithCredential(
         credential,
       );
+
+      if(userCredential.additionalUserInfo!.isNewUser){
+        
+      }
+
+      return userCredential;
     } finally {
       _isSigningIn = false;
     }
@@ -139,6 +149,8 @@ class AuthService {
       await updateUsername(username: username);
       await user.sendEmailVerification();
     }
+
+    await firebaseAuth.signOut();
 
     return userCredential;
   }

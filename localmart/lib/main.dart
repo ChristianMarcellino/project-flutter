@@ -7,14 +7,12 @@ import 'package:localmart/screens/home_screen.dart';
 import 'package:localmart/screens/saved_screen.dart';
 import 'package:localmart/screens/alert_screen.dart';
 import 'package:localmart/screens/profile_screen.dart';
-import 'package:localmart/services/auth_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   await dotenv.load(fileName: ".env");
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  authService = ValueNotifier(AuthService());
   runApp(const MainApp());
 }
 

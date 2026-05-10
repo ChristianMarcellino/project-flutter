@@ -5,12 +5,11 @@ import 'package:localmart/services/auth_service.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/register',
-  
+  refreshListenable: authService,
   redirect: (context, state) {
-    final user = authService.value.currentUser; // or however you get current user
+    final user = authService.currentUser;
     final isLoggedIn = user != null;
-    final isOnRegister = 
-        state.matchedLocation == '/register';
+    final isOnRegister = state.matchedLocation == '/register';
 
     if (!isLoggedIn && !isOnRegister) return '/register';
     if (isLoggedIn && isOnRegister) return '/';
@@ -18,13 +17,7 @@ final GoRouter appRouter = GoRouter(
   },
 
   routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => MainScreen(),
-    ),
-    GoRoute(
-      path: '/register',
-      builder: (context, state) => RegisterScreen(),
-    ),
+    GoRoute(path: '/', builder: (context, state) => MainScreen()),
+    GoRoute(path: '/register', builder: (context, state) => RegisterScreen()),
   ],
 );

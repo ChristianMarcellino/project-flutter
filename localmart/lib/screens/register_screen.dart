@@ -28,7 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void register() async {
     try {
-      await authService.value.signUp(
+      await authService.signUp(
         email: _emailController.text,
         password: _passwordController.text,
         username: _usernameController.text,
@@ -75,7 +75,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               TextButton(
                 onPressed: () {
-                  authService.value.signInWithGoogle();
+                  authService.signInWithGoogle();
                 },
                 child: Text("Or Login With"),
               ),

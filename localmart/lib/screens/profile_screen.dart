@@ -11,11 +11,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _logout() async {
     try {
-      await authService.value.signOut();
-
-      if (!mounted) return;
-
-      Navigator.pushReplacementNamed(context, '/register');
+      await authService.signOut();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
