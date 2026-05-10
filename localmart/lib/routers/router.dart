@@ -1,23 +1,48 @@
 import 'package:go_router/go_router.dart';
 import 'package:localmart/main.dart';
+import 'package:localmart/screens/login_screen.dart';
 import 'package:localmart/screens/register_screen.dart';
+import 'package:localmart/screens/verify_email_screen.dart';
 import 'package:localmart/services/auth_service.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/register',
+  initialLocation: '/login',
   refreshListenable: authService,
   redirect: (context, state) {
     final user = authService.currentUser;
     final isLoggedIn = user != null;
-    final isOnRegister = state.matchedLocation == '/register';
+    final isVerified = user?.emailVerified ?? false;
+    final currentPath = state.uri.path;
 
-    if (!isLoggedIn && !isOnRegister) return '/register';
-    if (isLoggedIn && isOnRegister) return '/';
+    final isOnRegister = currentPath == '/register';
+    final isOnVerifyEmail = currentPath == '/verify-email';
+    final isOnLogin = currentPath == '/login';
+
+    if (!isLoggedIn) {
+      if (isOnRegister || isOnVerifyEmail || isOnLogin) return null;
+      return '/login';
+    }
+
+    if (isLoggedIn && !isVerified) {
+      if (isOnVerifyEmail) return null;
+      return '/verify-email';
+    }
+
+    if (isLoggedIn && isVerified) {
+      if (isOnRegister || isOnVerifyEmail || isOnLogin) return '/';
+      return null;
+    }
+
     return null;
   },
 
   routes: [
     GoRoute(path: '/', builder: (context, state) => MainScreen()),
     GoRoute(path: '/register', builder: (context, state) => RegisterScreen()),
+    GoRoute(
+      path: '/verify-email',
+      builder: (context, state) => VerifyEmailScreen(),
+    ),
+    GoRoute(path: '/login', builder: (context, state) => LoginScreen()),
   ],
 );

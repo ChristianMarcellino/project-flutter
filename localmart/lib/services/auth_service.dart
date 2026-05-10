@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -5,6 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 final AuthService authService = AuthService();
+
 class AuthService extends ChangeNotifier {
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
   User? get currentUser => firebaseAuth.currentUser;
@@ -22,21 +24,17 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> _initializeGoogleSignIn() async {
-  try {
-    await _googleSignIn.initialize(
-      clientId: dotenv.env["CLIENT_ID"],
-    );
+    try {
+      await _googleSignIn.initialize(clientId: dotenv.env["CLIENT_ID"]);
 
-    _isGoogleSignInInitialized = true;
+      _isGoogleSignInInitialized = true;
 
-    print("Google Sign In initialized successfully");
-    print(
-      "supportsAuthenticate: ${_googleSignIn.supportsAuthenticate()}",
-    );
-  } catch (e) {
-    print("Failed to initialize Google Sign-In: $e");
+      print("Google Sign In initialized successfully");
+      print("supportsAuthenticate: ${_googleSignIn.supportsAuthenticate()}");
+    } catch (e) {
+      print("Failed to initialize Google Sign-In: $e");
+    }
   }
-}
 
   Future<void> _ensureGoogleSignInInitialized() async {
     if (kIsWeb) return;
@@ -59,41 +57,32 @@ class AuthService extends ChangeNotifier {
         googleProvider.addScope('email');
         googleProvider.addScope('profile');
 
-        return await firebaseAuth.signInWithPopup(
-          googleProvider,
-        );
-        
+        return await firebaseAuth.signInWithPopup(googleProvider);
       }
 
       await _ensureGoogleSignInInitialized();
 
-      final GoogleSignInAccount account =
-          await _googleSignIn.authenticate(
+      final GoogleSignInAccount account = await _googleSignIn.authenticate(
         scopeHint: ['email'],
       );
 
-      final String? idToken =
-          account.authentication.idToken;
+      final String? idToken = account.authentication.idToken;
 
-      final clientAuth =
-          await account.authorizationClient
-              .authorizeScopes([
+      final clientAuth = await account.authorizationClient.authorizeScopes([
         'email',
         'profile',
       ]);
 
-      final credential =
-          GoogleAuthProvider.credential(
+      final credential = GoogleAuthProvider.credential(
         idToken: idToken,
         accessToken: clientAuth.accessToken,
       );
-      
 
       UserCredential userCredential = await firebaseAuth.signInWithCredential(
         credential,
       );
 
-      if(userCredential.additionalUserInfo!.isNewUser){
+      if (userCredential.additionalUserInfo?.isNewUser == true) {
         
       }
 
@@ -121,18 +110,16 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> signOutGoogle() async {
-  try {
-    if (!kIsWeb) {
-      await _googleSignIn.signOut();
-    }
+    try {
+      if (!kIsWeb) {
+        await _googleSignIn.signOut();
+      }
 
-    await firebaseAuth.signOut();
-  } catch (e) {
-    throw Exception(
-      "Firebase sign-out failed: $e",
-    );
+      await firebaseAuth.signOut();
+    } catch (e) {
+      throw Exception("Firebase sign-out failed: $e");
+    }
   }
-}
 
   Stream<User?> get authStateChanges => firebaseAuth.authStateChanges();
 
@@ -140,19 +127,40 @@ class AuthService extends ChangeNotifier {
     required String email,
     required String password,
     required String username,
+    required String phoneNumber,
   }) async {
-    UserCredential userCredential = await firebaseAuth
-        .createUserWithEmailAndPassword(email: email, password: password);
+    try {
+      UserCredential userCredential = await firebaseAuth
+          .createUserWithEmailAndPassword(email: email, password: password);
 
-    User? user = userCredential.user;
-    if (user != null) {
-      await updateUsername(username: username);
-      await user.sendEmailVerification();
+      User? user = userCredential.user;
+
+      if (user != null) {
+        await user.sendEmailVerification();
+
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'email': email,
+          'username': username,
+          'phoneNumber': phoneNumber,
+          'createdAt': FieldValue.serverTimestamp(),
+          'provider': 'email',
+          'emailVerified': false,
+        });
+      }
+
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      if (firebaseAuth.currentUser != null) {
+        await firebaseAuth.signOut();
+      }
+      throw Exception(e.message ?? 'Signup failed');
+    } catch (e) {
+      if (firebaseAuth.currentUser != null) {
+        await firebaseAuth.signOut();
+      }
+      throw Exception(e.toString());
     }
-
-    await firebaseAuth.signOut();
-
-    return userCredential;
   }
 
   Future<UserCredential> signIn({
@@ -170,12 +178,16 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> resetPassword({required String email}) async {
-    await firebaseAuth.sendPasswordResetEmail(email: email);
+  try {
+    await firebaseAuth.sendPasswordResetEmail(
+      email: email.trim(),
+    );
+  } on FirebaseAuthException catch (e) {
+    throw Exception(
+      e.message ?? "Failed to send password reset email.",
+    );
   }
-
-  Future<void> updateUsername({required String username}) async {
-    await currentUser!.updateDisplayName(username);
-  }
+}
 
   Future<void> deleteAccount({
     required String email,

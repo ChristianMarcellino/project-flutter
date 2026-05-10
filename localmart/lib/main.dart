@@ -8,9 +8,11 @@ import 'package:localmart/screens/saved_screen.dart';
 import 'package:localmart/screens/alert_screen.dart';
 import 'package:localmart/screens/profile_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:localmart/services/global_pref_service.dart';
 
 void main() async {
   await dotenv.load(fileName: ".env");
+  await PrefsService.init();
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MainApp());
@@ -51,11 +53,12 @@ class _MainScreenState extends State<MainScreen> {
     ProfileScreen(),
   ];
   bool isSignedIn = false;
+  bool darkMode = PrefsService.isDarkMode;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF030712),
+      backgroundColor: darkMode ? Color(0xFF111827) : Color(0xFFF9FAFB),
       body: _screens[_currentIndex],
       bottomNavigationBar: Theme(
         data: Theme.of(context).copyWith(canvasColor: Color(0xFF111827)),

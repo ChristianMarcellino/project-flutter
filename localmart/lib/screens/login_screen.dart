@@ -1,64 +1,93 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/widgets/auth_input_field.dart';
 
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _phoneNumberController = TextEditingController();
-  String _errorText = "";
-  bool _obscurePassword = true;
 
+  bool _isLoading = false;
+  String _errorText = '';
+  bool _obscurePassword = true;
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _usernameController.dispose();
-    _phoneNumberController.dispose();
     super.dispose();
   }
 
-  void register() async {
+  Future<void> login() async {
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
+      setState(() {
+        _errorText = 'Email and password are required';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorText = '';
+    });
+
     try {
-      await authService.signUp(
+      final userCredential = await authService.signIn(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
-        username: _usernameController.text.trim(),
-        phoneNumber: _phoneNumberController.text.trim(),
       );
 
+      final user = userCredential.user;
+
+      if (user != null) {
+        await user.reload();
+
+        if (!user.emailVerified) {
+          if (mounted) {
+            context.go('/verify-email');
+          }
+          return;
+        }
+      }
+
+      if (mounted) {
+        context.go('/');
+      }
+    } catch (e) {
       setState(() {
-        _errorText = "";
+        _errorText = e.toString().replaceAll('Exception: ', '');
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Registration successful! Please verify your email before logging in.",
-            ),
-          ),
+          SnackBar(content: Text(_errorText)),
         );
-        context.go('/verify-email');
       }
-    } catch (e) {
-      setState(() {
-        _errorText = e.toString().replaceAll("Exception: ", "");
-      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_errorText)));
+  Future<void> _resetPassword() async {
+    try {
+      await authService.resetPassword(email: _emailController.text.trim());
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Reset password failed: $e"),
+        ),
+      );
     }
   }
 
@@ -72,8 +101,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 10),
-
+              const SizedBox(height: 20),
               Center(
                 child: Container(
                   width: 110,
@@ -89,12 +117,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 28),
-
               const Center(
                 child: Text(
-                  "Create Account",
+                  'Welcome Back',
                   style: TextStyle(
                     fontSize: 34,
                     fontWeight: FontWeight.bold,
@@ -102,36 +128,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 8),
-
               const Center(
                 child: Text(
-                  "Join LocalMart today",
-                  style: TextStyle(fontSize: 17, color: Color(0xFF6B7280)),
+                  'Login to continue using LocalMart',
+                  style: TextStyle(
+                    fontSize: 17,
+                    color: Color(0xFF6B7280),
+                  ),
                 ),
               ),
-
               const SizedBox(height: 36),
-
               AuthInputField(
-                label: "Username",
-                hint: "Choose a username",
-                icon: Icons.person_outline,
-                controller: _usernameController,
-              ),
-
-              AuthInputField(
-                label: "Email",
-                hint: "your@email.com",
+                label: 'Email',
+                hint: 'your@email.com',
                 icon: Icons.mail_outline,
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
               ),
-
               AuthInputField(
-                label: "Password",
-                hint: "Create a password",
+                label: 'Password',
+                hint: 'Enter your password',
                 icon: Icons.lock_outline,
                 controller: _passwordController,
                 isPassword: true,
@@ -142,23 +159,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   });
                 },
               ),
-
-              AuthInputField(
-                label: "Phone Number",
-                hint: "+62 8123456789",
-                icon: Icons.phone_outlined,
-                controller: _phoneNumberController,
-                keyboardType: TextInputType.phone,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    if(_emailController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please enter your email address.'),
+                        ),
+                      );
+                      return;
+                    }
+                    _resetPassword();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Password reset email sent successfully.'),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'Forgot Password?',
+                    style: TextStyle(
+                      color: Color(0xFF2563EB),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
-
               const SizedBox(height: 10),
-
               SizedBox(
                 width: double.infinity,
                 height: 58,
                 child: ElevatedButton(
-                  onPressed: register,
+                  onPressed: _isLoading ? null : login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2563EB),
                     shape: RoundedRectangleBorder(
@@ -166,35 +200,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    "Create Account",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Login',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
-
               const SizedBox(height: 20),
-
               Row(
                 children: const [
                   Expanded(child: Divider()),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 10),
                     child: Text(
-                      "or continue with",
+                      'or continue with',
                       style: TextStyle(color: Color(0xFF6B7280)),
                     ),
                   ),
                   Expanded(child: Divider()),
                 ],
               ),
-
               const SizedBox(height: 20),
-
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -208,7 +240,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     color: Color(0xFF111827),
                   ),
                   label: const Text(
-                    "Continue with Google",
+                    'Continue with Google',
                     style: TextStyle(
                       fontSize: 16,
                       color: Color(0xFF111827),
@@ -224,18 +256,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 24),
               Center(
                 child: TextButton(
                   onPressed: () {
-                    context.go('/login');
+                    context.go('/register');
                   },
                   child: const Text.rich(
                     TextSpan(
-                      text: "Already have an account?  ",
+                      text: "Don't have an account? ",
                       style: TextStyle(color: Color(0xFF6B7280)),
                       children: [
                         TextSpan(
-                          text: 'Login',
+                          text: 'Register',
                           style: TextStyle(
                             color: Color(0xFF2563EB),
                             fontWeight: FontWeight.bold,
@@ -246,8 +279,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
               ),
-
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
             ],
           ),
         ),
