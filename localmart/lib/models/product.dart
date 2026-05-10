@@ -16,7 +16,7 @@ class Product {
   final List<String> buyerTargets;
   final int likesCount;
   final int commentsCount;
-  final String status; // 
+  final String status; 
   final Timestamp createdAt;
   final Timestamp updatedAt;
 

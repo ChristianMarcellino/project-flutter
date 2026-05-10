@@ -16,8 +16,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _phoneNumberController = TextEditingController();
+
   String _errorText = "";
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -29,6 +31,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void register() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorText = "";
+    });
+
     try {
       await authService.signUp(
         email: _emailController.text.trim(),
@@ -36,10 +45,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         username: _usernameController.text.trim(),
         phoneNumber: _phoneNumberController.text.trim(),
       );
-
-      setState(() {
-        _errorText = "";
-      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -49,6 +54,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
         );
+
         context.go('/verify-email');
       }
     } catch (e) {
@@ -56,9 +62,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _errorText = e.toString().replaceAll("Exception: ", "");
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_errorText)));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_errorText)));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -158,22 +172,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 width: double.infinity,
                 height: 58,
                 child: ElevatedButton(
-                  onPressed: register,
+                  onPressed: _isLoading ? null : register,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2563EB),
+                    disabledBackgroundColor: const Color(0xFF93C5FD),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    "Create Account",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          "Create Account",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
 
