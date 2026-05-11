@@ -2,16 +2,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:localmart/models/product.dart';
 
 class ProductService {
-  final CollectionReference productsRef = FirebaseFirestore.instance.collection(
+  static final CollectionReference productsRef = FirebaseFirestore.instance.collection(
     'products',
   );
 
   Future<void> createProduct(Product product) async {
-    await productsRef.doc(product.productId).set(product.toMap());
+    await productsRef.doc(product.id).set(product.toMap());
   }
 
-  Future<Product?> getProductById(String productId) async {
-    final doc = await productsRef.doc(productId).get();
+  Future<Product?> getProductById(String id) async {
+    final doc = await productsRef.doc(id).get();
 
     if (doc.exists) {
       return Product.fromMap(doc.data() as Map<String, dynamic>, doc.id);
@@ -19,8 +19,8 @@ class ProductService {
     return null;
   }
 
-  Stream<Product?> streamProductById(String productId) {
-    return productsRef.doc(productId).snapshots().map((doc) {
+  Stream<Product?> streamProductById(String id) {
+    return productsRef.doc(id).snapshots().map((doc) {
       if (doc.exists) {
         return Product.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       }
@@ -28,6 +28,27 @@ class ProductService {
     });
   }
 
+  static Future<void> addPost(Product product) async {
+    Map<String, dynamic> newProduct = {
+      "likesCount" : 0,
+      "commentsCount" : 0,
+      "category": product.category,
+      "description": product.description,
+      "image": product.images,
+      "created_at": FieldValue.serverTimestamp(),
+      "updated_at": FieldValue.serverTimestamp(),
+      "latitude" : product.latitude,
+      "longitude": product.longitude,
+      "negotiable" : product.negotiable,
+      "sellerId" : product.sellerId,
+      "price" : product.price,
+      "location_name" : product.locationName,
+      "buyer_target" : product.buyerTargets,
+      "status" : product.status
+    };
+    await productsRef.add(newProduct);
+  }
+  
   Stream<List<Product>> getAllProducts() {
     return productsRef
         .where('status', isEqualTo: 'available')

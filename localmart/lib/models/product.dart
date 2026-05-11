@@ -2,7 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Product {
-  final String productId;
+  final String id;
   final String sellerId;
   final String title;
   final String description;
@@ -21,7 +21,7 @@ class Product {
   final Timestamp updatedAt;
 
   Product({
-    required this.productId,
+    required this.id,
     required this.sellerId,
     required this.title,
     required this.description,
@@ -42,7 +42,7 @@ class Product {
 
   factory Product.fromMap(Map<String, dynamic> map, String documentId) {
     return Product(
-      productId: documentId,
+      id: documentId,
       sellerId: map['sellerId'] ?? '',
       title: map['title'] ?? '',
       description: map['description'] ?? '',
