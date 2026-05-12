@@ -53,7 +53,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            Text("Product Photos")
+            Text("Product Photos"),
+            ElevatedButton(
+              onPressed: (){}, 
+              child: ClipRRect(
+                borderRadius: BorderRadiusGeometry.circular(10),
+                child: ,
+              )
+            )
           ],
         ),
       ),
