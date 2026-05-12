@@ -17,15 +17,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  List<String>? _image;
-  List<Uint8List>? _imageBytes;
+  List<String> _image =[];
+  List<Uint8List> _imageBytes=[];
   final ImagePicker _picker = ImagePicker();
   String? _category;
   String? _latitude;
   String? _longitude;
   bool _isSubmitting = false;
   bool _isGettingLocation = false;
-
 
   Future<void> pickAndConvertThenCompressImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
@@ -43,15 +42,21 @@ class _AddProductScreenState extends State<AddProductScreen> {
       final encodedResult = base64Encode(result);
 
       setState(() {
-        _image = encodedResult;
-        _imageBytes = result;
+        _image.add(encodedResult);
+        _imageBytes.add(result);
       });
     }
   }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
- 
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Text("Product Photos")
+          ],
+        ),
+      ),
     );
   }
 }
