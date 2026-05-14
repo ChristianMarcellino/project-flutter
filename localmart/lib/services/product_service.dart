@@ -6,10 +6,6 @@ class ProductService {
     'products',
   );
 
-  Future<void> createProduct(Product product) async {
-    await productsRef.doc(product.id).set(product.toMap());
-  }
-
   Future<Product?> getProductById(String id) async {
     final doc = await productsRef.doc(id).get();
 
@@ -28,7 +24,7 @@ class ProductService {
     });
   }
 
-  static Future<void> addPost(Product product) async {
+  static Future<void> addProduct(Product product) async {
     Map<String, dynamic> newProduct = {
       "likesCount" : 0,
       "commentsCount" : 0,
