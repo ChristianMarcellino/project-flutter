@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:localmart/models/product.dart';
 import 'package:localmart/services/auth_service.dart';
@@ -48,6 +47,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
     "Other",
   ];
 
+  final List<String> status = [
+    "Available",
+    "Not Available",
+    "Booked",
+
+  ];
+
   final List<String> buyerTargets = [
     "Students",
     "Professionals",
@@ -60,6 +66,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   ];
 
   List<String> selectedBuyerTarget = [];
+  String selectedStatus = "Available";
+
 
   @override
   void dispose() {
@@ -167,6 +175,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         description: _descriptionController.text.trim(),
         category: selectedCategory,
         price: double.parse(_priceController.text.trim()),
+        status : selectedStatus,
         negotiable: _negotiable,
         images: _images,
         locationName: "Current Location",
@@ -175,7 +184,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
         buyerTargets: selectedBuyerTarget,
         likesCount: 0,
         commentsCount: 0,
-        status: "active",
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       );
@@ -378,7 +386,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ),
               const SizedBox(height: 20),
               _buildSectionTitle("Category"),
-              Container(
+                            Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -399,6 +407,34 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     onChanged: (value) {
                       setState(() {
                         selectedCategory = value!;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildSectionTitle("Status"),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: selectedStatus,
+                    isExpanded: true,
+                    icon: const Icon(Icons.keyboard_arrow_down),
+                    items: status.map((status) {
+                      return DropdownMenuItem(
+                        value: status,
+                        child: Text(status),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedStatus = value!;
                       });
                     },
                   ),
