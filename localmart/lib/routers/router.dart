@@ -1,7 +1,10 @@
 import 'package:go_router/go_router.dart';
 import 'package:localmart/main.dart';
 import 'package:localmart/screens/login_screen.dart';
+import 'package:localmart/screens/product_detail_screen.dart';
+import 'package:localmart/screens/products_screen.dart';
 import 'package:localmart/screens/register_screen.dart';
+import 'package:localmart/screens/search_screen.dart';
 import 'package:localmart/screens/verify_email_screen.dart';
 import 'package:localmart/services/auth_service.dart';
 
@@ -44,5 +47,20 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => VerifyEmailScreen(),
     ),
     GoRoute(path: '/login', builder: (context, state) => LoginScreen()),
+    GoRoute(path: '/search', builder: (context, state) => const SearchScreen(showBack: true)),
+    GoRoute(
+      path: '/products',
+      builder: (context, state) {
+        final section = state.extra as String? ?? 'nearby';
+        return ProductsScreen(section: section);
+      },
+    ),
+    GoRoute(
+      path: '/product/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return ProductDetailScreen(productId: id);
+      },
+    ),
   ],
 );

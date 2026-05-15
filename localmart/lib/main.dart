@@ -4,17 +4,20 @@ import 'package:localmart/firebase_options.dart';
 import 'package:localmart/routers/router.dart';
 import 'package:localmart/screens/add_product_screen.dart';
 import 'package:localmart/screens/home_screen.dart';
-import 'package:localmart/screens/saved_screen.dart';
-import 'package:localmart/screens/alert_screen.dart';
 import 'package:localmart/screens/profile_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:localmart/screens/saved_screen.dart';
+import 'package:localmart/screens/search_screen.dart';
 import 'package:localmart/services/global_pref_service.dart';
 
+final ValueNotifier<bool> darkModeNotifier = ValueNotifier(false);
+
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   await PrefsService.init();
-  WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  darkModeNotifier.value = PrefsService.isDarkMode;
   runApp(const MainApp());
 }
 
@@ -47,49 +50,102 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   final List<Widget> _screens = [
     HomeScreen(),
+    SearchScreen(),
     SavedScreen(),
-    AddProductScreen(),
-    AlertScreen(),
     ProfileScreen(),
   ];
-  bool isSignedIn = false;
-  bool darkMode = PrefsService.isDarkMode;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: darkMode ? Color(0xFF111827) : Color(0xFFF9FAFB),
-      body: _screens[_currentIndex],
-      bottomNavigationBar: Theme(
-        data: Theme.of(context).copyWith(canvasColor: Color(0xFF111827)),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            if (index == 2) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AddProductScreen()),
-              );
-              return;
-            }
-
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          selectedItemColor: Color(0xFFC084FC),
-          unselectedItemColor: Color(0xFF6B7280),
-          items: [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-            BottomNavigationBarItem(icon: Icon(Icons.bookmark), label: "Saved"),
-            BottomNavigationBarItem(icon: Icon(Icons.add), label: "Add"),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.notifications),
-              label: "Alert",
+    return ValueListenableBuilder<bool>(
+      valueListenable: darkModeNotifier,
+      builder: (context, isDark, _) {
+        return Scaffold(
+          backgroundColor:
+              isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB),
+          body: _screens[_currentIndex],
+          bottomNavigationBar: Container(
+            height: 78,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1F2937) : Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-          ],
+            child: SafeArea(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(0, isDark ? Icons.home : Icons.home_outlined, "Home"),
+                  _buildNavItem(1, Icons.search, "Search"),
+                  _buildAddButton(),
+                  _buildNavItem(2, _currentIndex == 2 ? Icons.favorite : Icons.favorite_border, "Saved"),
+                  _buildNavItem(3, _currentIndex == 3 ? Icons.person : Icons.person_outline, "Profile"),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final isSelected = _currentIndex == index;
+    return ValueListenableBuilder<bool>(
+      valueListenable: darkModeNotifier,
+      builder: (context, isDark, _) {
+        final activeColor = const Color(0xFF2563EB);
+        final inactiveColor = isDark ? Colors.white54 : Colors.grey.shade500;
+        
+        return GestureDetector(
+          onTap: () => setState(() => _currentIndex = index),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? activeColor : inactiveColor,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? activeColor : inactiveColor,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAddButton() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AddProductScreen()),
+        );
+      },
+      child: Container(
+        width: 58,
+        height: 58,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Color(0xFF2563EB),
         ),
+        child: const Icon(Icons.add, color: Colors.white, size: 30),
       ),
     );
   }

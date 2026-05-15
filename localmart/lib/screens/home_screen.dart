@@ -1,107 +1,147 @@
-
-import 'dart:math';
-
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:localmart/models/product.dart';
 import 'package:localmart/services/product_service.dart';
+import 'package:localmart/theme/app_theme.dart';
+import 'package:localmart/widgets/grid_product_card.dart';
+import 'package:localmart/widgets/product_card.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class HomeScreen extends StatelessWidget {
+  HomeScreen({super.key});
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
   final ProductService _productService = ProductService();
 
-  final List<Map<String, dynamic>> categories = [
-    {"label": "Electronics", "icon": Icons.bolt, "color": Color(0xFFE8F0FF)},
-    {"label": "Trending", "icon": Icons.trending_up, "color": Color(0xFFFFF3E8)},
-    {"label": "Nearby", "icon": Icons.location_on, "color": Color(0xFFE8FFF1)},
-    {"label": "Deals", "icon": Icons.local_offer, "color": Color(0xFFFFEDED)},
-  ];
-
-  String formatPrice(double price) {
-    return "\$${price.toStringAsFixed(0)}";
+  List<Product> nearbyProducts(List<Product> products) {
+    return products;
   }
 
-  String randomDistance() {
-    final value = (Random().nextDouble() * 5 + 0.3);
-    return "${value.toStringAsFixed(1)} km";
+  List<Product> trendingProducts(List<Product> products) {
+    return [...products]..sort((a, b) => b.likesCount.compareTo(a.likesCount));
   }
 
-  String productCondition(Product product) {
-    if (product.price > 1000) return "Excellent";
-    if (product.price > 300) return "Like New";
-    return "Good";
-  }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      body: StreamBuilder<List<Product>>(
+        stream: _productService.getAllProducts(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator(color: AppTheme.primary));
+          }
 
-  Widget _buildCategoryChip(Map<String, dynamic> item) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: item['color'],
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            item['icon'],
-            size: 14,
-            color: Colors.black87,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            item['label'],
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+          if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}", style: AppTheme.body));
+          }
+
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return _buildEmptyState();
+          }
+
+          final allProducts = snapshot.data!;
+          final nearby = nearbyProducts(allProducts).take(6).toList();
+          final trending = trendingProducts(allProducts).take(6).toList();
+
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              _buildAppBar(context),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSearchBar(context),
+                      const SizedBox(height: 24),
+                      _buildSectionHeader(
+                        context,
+                        "Nearby Listings",
+                        "Items close to you",
+                        "nearby",
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 280,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: nearby.length,
+                    itemBuilder: (context, index) => ProductCard(product: nearby[index]),
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 32, 16, 16),
+                  child: _buildSectionHeader(
+                    context,
+                    "Trending Now",
+                    "Most popular this week",
+                    "trending",
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverGrid(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => GridProductCard(product: trending[index]),
+                    childCount: trending.length,
+                  ),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    mainAxisExtent: 240,
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title, String subtitle, IconData icon) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: Colors.green, size: 18),
-                const SizedBox(width: 6),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+  Widget _buildAppBar(BuildContext context) {
+    return SliverAppBar(
+      floating: true,
+      backgroundColor: AppTheme.background,
+      elevation: 0,
+      centerTitle: false,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("LocalMart", style: AppTheme.h1),
+          Row(
+            children: [
+              Icon(Icons.location_on, size: 12, color: AppTheme.primary),
+              const SizedBox(width: 4),
+              Text("Jakarta, Indonesia", style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppTheme.border),
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-        TextButton(
-          onPressed: () {},
-          child: const Text(
-            "See all",
-            style: TextStyle(
-              color: Color(0xFF2563EB),
-              fontWeight: FontWeight.w600,
+            child: IconButton(
+              icon: Icon(Icons.notifications_none_rounded, color: AppTheme.textPrimary),
+              onPressed: () {},
             ),
           ),
         ),
@@ -109,298 +149,62 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildProductCard(Product product) {
-    final imageBytes = product.images.isNotEmpty
-        ? product.images.first
-        : "";
-
-    return Container(
-      width: 185,
-      margin: const EdgeInsets.only(right: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
-                child: product.images.isNotEmpty
-                    ? Image.memory(
-                        UriData.parse(
-                          'data:image/jpeg;base64,$imageBytes',
-                        ).contentAsBytes(),
-                        height: 170,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      )
-                    : Container(
-                        height: 170,
-                        color: Colors.grey.shade200,
-                      ),
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Colors.white,
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(
-                      Icons.favorite_border,
-                      size: 18,
-                      color: Colors.black87,
-                    ),
-                    onPressed: () {},
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  formatPrice(product.price),
-                  style: const TextStyle(
-                    fontSize: 28,
-                    color: Color(0xFF2563EB),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.location_on_outlined,
-                      size: 14,
-                      color: Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      randomDistance(),
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        productCondition(product),
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: product.buyerTargets.take(2).map((target) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8FFF1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        target,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.green,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-        ],
+  Widget _buildSearchBar(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push("/search"),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.search_rounded, color: AppTheme.textSecondary),
+            const SizedBox(width: 12),
+            Text("Search electronics, fashion...", style: TextStyle(color: AppTheme.textSecondary)),
+            const Spacer(),
+            Icon(Icons.tune_rounded, color: AppTheme.primary, size: 20),
+          ],
+        ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      body: SafeArea(
-        child: StreamBuilder<List<Product>>(
-          stream: _productService.getAllProducts(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(
-                child: Text("No products available"),
-              );
-            }
-
-            final products = snapshot.data!;
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.search,
-                                color: Colors.grey.shade500,
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                "Search marketplace...",
-                                style: TextStyle(
-                                  color: Colors.grey.shade500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Stack(
-                        children: [
-                          Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: Colors.grey.shade300,
-                              ),
-                            ),
-                            child: const Icon(Icons.notifications_none),
-                          ),
-                          Positioned(
-                            top: 10,
-                            right: 12,
-                            child: Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: categories.map((item) {
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 10),
-                          child: _buildCategoryChip(item),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  _buildSectionHeader(
-                    "Nearby Products",
-                    "Items near your location",
-                    Icons.location_on,
-                  ),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    height: 370,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: products.length,
-                      itemBuilder: (context, index) {
-                        return _buildProductCard(products[index]);
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  _buildSectionHeader(
-                    "Trending Deals",
-                    "Popular items in your area",
-                    Icons.trending_up,
-                  ),
-                  const SizedBox(height: 18),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: products.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.62,
-                      crossAxisSpacing: 14,
-                      mainAxisSpacing: 14,
-                    ),
-                    itemBuilder: (context, index) {
-                      return _buildProductCard(products[index]);
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
+  Widget _buildSectionHeader(BuildContext context, String title, String subtitle, String section) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: AppTheme.h2),
+            Text(subtitle, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+          ],
         ),
+        TextButton(
+          onPressed: () => context.push("/products", extra: section),
+          style: TextButton.styleFrom(
+            backgroundColor: AppTheme.primaryLight,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: Text("See All", style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.storefront_rounded, size: 64, color: AppTheme.textSecondary),
+          const SizedBox(height: 16),
+          Text("No products found", style: AppTheme.h2),
+          Text("Be the first to list something!", style: AppTheme.body),
+        ],
       ),
     );
   }

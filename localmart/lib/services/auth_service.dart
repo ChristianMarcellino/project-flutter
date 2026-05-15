@@ -82,9 +82,7 @@ class AuthService extends ChangeNotifier {
         credential,
       );
 
-      if (userCredential.additionalUserInfo?.isNewUser == true) {
-        
-      }
+      if (userCredential.additionalUserInfo?.isNewUser == true) {}
 
       return userCredential;
     } finally {
@@ -178,16 +176,12 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> resetPassword({required String email}) async {
-  try {
-    await firebaseAuth.sendPasswordResetEmail(
-      email: email.trim(),
-    );
-  } on FirebaseAuthException catch (e) {
-    throw Exception(
-      e.message ?? "Failed to send password reset email.",
-    );
+    try {
+      await firebaseAuth.sendPasswordResetEmail(email: email.trim());
+    } on FirebaseAuthException catch (e) {
+      throw Exception(e.message ?? "Failed to send password reset email.");
+    }
   }
-}
 
   Future<void> deleteAccount({
     required String email,

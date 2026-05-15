@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:localmart/theme/app_theme.dart';
 
 class AuthInputField extends StatelessWidget {
   final String label;
@@ -34,10 +35,10 @@ class AuthInputField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF111827),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
@@ -46,36 +47,39 @@ class AuthInputField extends StatelessWidget {
           obscureText: isPassword ? obscurePassword : false,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
+          style: TextStyle(color: AppTheme.textPrimary),
           decoration: InputDecoration(
             errorText: errorText?.isNotEmpty == true ? errorText : null,
             hintText: hint,
-            prefixIcon: Icon(icon, color: const Color(0xFF6B7280)),
+            hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+            prefixIcon: Icon(icon, color: AppTheme.textSecondary, size: 20),
             suffixIcon: isPassword
                 ? IconButton(
                     icon: Icon(
                       obscurePassword ? Icons.visibility_off : Icons.visibility,
-                      color: const Color(0xFF6B7280),
+                      color: AppTheme.textSecondary,
+                      size: 20,
                     ),
                     onPressed: onTogglePassword,
                   )
                 : null,
             filled: true,
-            fillColor: Colors.white,
+            fillColor: AppTheme.surface,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 18,
             ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppTheme.border),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppTheme.border),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppTheme.primary, width: 2),
             ),
           ),
         ),
