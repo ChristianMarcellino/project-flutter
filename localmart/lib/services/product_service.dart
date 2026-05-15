@@ -20,7 +20,6 @@ class ProductService {
     required String description,
     required double price,
     required String category,
-    required String condition,
     required List<String> images,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -39,7 +38,6 @@ class ProductService {
       'title': title,
       'description': description,
       'category': category,
-      'condition': condition,
       'price': price,
       'negotiable': true,
       'images': images,

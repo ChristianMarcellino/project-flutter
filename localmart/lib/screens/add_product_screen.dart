@@ -18,7 +18,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   String _selectedCategory = "Electronics";
-  String _selectedCondition = "New";
   final List<String> _images = [];
   bool _isLoading = false;
 
@@ -42,7 +41,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
         description: _descriptionController.text,
         price: double.parse(_priceController.text),
         category: _selectedCategory,
-        condition: _selectedCondition,
         images: _images,
       );
       if (mounted) context.pop();
@@ -77,7 +75,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
               _buildTextField("Product Title", _titleController, "Enter product name"),
               _buildTextField("Price (IDR)", _priceController, "0", keyboardType: TextInputType.number),
               _buildDropdown("Category", _categories, _selectedCategory, (v) => setState(() => _selectedCategory = v!)),
-              _buildDropdown("Condition", ["New", "Used", "Refurbished"], _selectedCondition, (v) => setState(() => _selectedCondition = v!)),
               _buildTextField("Description", _descriptionController, "Tell us more about your product", maxLines: 5),
               const SizedBox(height: 40),
               SizedBox(

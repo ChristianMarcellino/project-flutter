@@ -64,7 +64,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             decoration: BoxDecoration(color: AppTheme.primaryLight, borderRadius: BorderRadius.circular(8)),
                             child: Text(product.category, style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 12)),
                           ),
-                          Text(product.condition, style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -139,11 +138,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(product.sellerName, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text("Verified Seller", style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
             ],
           ),
-          const Spacer(),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.chevron_right_rounded)),
         ],
       ),
     );
