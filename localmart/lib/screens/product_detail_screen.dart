@@ -132,12 +132,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       decoration: AppTheme.cardDecoration,
       child: Row(
         children: [
-          CircleAvatar(backgroundColor: AppTheme.primaryLight, child: Text(product.sellerName[0])),
+          CircleAvatar(backgroundColor: AppTheme.primary, child: Text(product.sellerName[0])),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(product.sellerName, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(product.sellerName, style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
             ],
           ),
         ],
@@ -195,7 +195,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             final data = docs[index].data() as Map<String, dynamic>;
             return ListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text(data['userName'] ?? 'User', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              title: Text(data['userName'] ?? 'User', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
               subtitle: Text(data['text'] ?? '', style: TextStyle(color: AppTheme.textPrimary)),
             );
           },
