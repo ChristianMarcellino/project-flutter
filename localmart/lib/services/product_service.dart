@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:localmart/models/product.dart';
 
 class ProductService {
-  static final CollectionReference productsRef =
-      FirebaseFirestore.instance.collection('products');
+  static final CollectionReference productsRef = FirebaseFirestore.instance
+      .collection('products');
 
   Stream<Product?> streamProductById(String id) {
     return productsRef.doc(id).snapshots().map((doc) {
@@ -56,20 +56,23 @@ class ProductService {
   Stream<List<Product>> getAllProducts() {
     return productsRef.snapshots().map((snapshot) {
       return snapshot.docs
-          .map((doc) =>
-              Product.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .map(
+            (doc) =>
+                Product.fromMap(doc.data() as Map<String, dynamic>, doc.id),
+          )
           .toList();
     });
   }
 
   Stream<List<Product>> getProductsBySeller(String sellerId) {
-    return productsRef
-        .where('sellerId', isEqualTo: sellerId)
-        .snapshots()
-        .map((snapshot) {
+    return productsRef.where('sellerId', isEqualTo: sellerId).snapshots().map((
+      snapshot,
+    ) {
       return snapshot.docs
-          .map((doc) =>
-              Product.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .map(
+            (doc) =>
+                Product.fromMap(doc.data() as Map<String, dynamic>, doc.id),
+          )
           .toList();
     });
   }

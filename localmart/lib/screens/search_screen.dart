@@ -20,7 +20,7 @@ class _SearchScreenState extends State<SearchScreen> {
   String _query = '';
   String? _selectedCategory;
   double _minPrice = 0;
-  double _maxPrice = 100000000;
+  double _maxPrice = 0;
   bool _filtersVisible = false;
 
   final List<String> _categories = [
@@ -33,17 +33,23 @@ class _SearchScreenState extends State<SearchScreen> {
     "Pets",
     "Other",
   ];
+  final TextEditingController _minPriceController = TextEditingController();
+
+  final TextEditingController _maxPriceController = TextEditingController();
 
   @override
   void dispose() {
     _searchController.dispose();
+    _minPriceController.dispose();
+    _maxPriceController.dispose();
     super.dispose();
   }
 
   List<Product> _applyFilters(List<Product> all) {
     return all.where((p) {
       final q = _query.toLowerCase();
-      final matchesQuery = q.isEmpty ||
+      final matchesQuery =
+          q.isEmpty ||
           p.title.toLowerCase().contains(q) ||
           p.sellerName.toLowerCase().contains(q);
       final matchesCategory =
@@ -68,7 +74,9 @@ class _SearchScreenState extends State<SearchScreen> {
                 stream: ProductService().getAllProducts(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator(color: AppTheme.primary));
+                    return Center(
+                      child: CircularProgressIndicator(color: AppTheme.primary),
+                    );
                   }
 
                   final results = _applyFilters(snapshot.data ?? []);
@@ -85,13 +93,15 @@ class _SearchScreenState extends State<SearchScreen> {
                     padding: const EdgeInsets.all(16),
                     physics: const BouncingScrollPhysics(),
                     itemCount: results.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      mainAxisExtent: 240,
-                    ),
-                    itemBuilder: (context, index) => GridProductCard(product: results[index]),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          mainAxisExtent: 240,
+                        ),
+                    itemBuilder: (context, index) =>
+                        GridProductCard(product: results[index]),
                   );
                 },
               ),
@@ -112,7 +122,11 @@ class _SearchScreenState extends State<SearchScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: IconButton(
-                icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.textPrimary, size: 18),
+                icon: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: AppTheme.textPrimary,
+                  size: 18,
+                ),
                 onPressed: () => context.pop(),
               ),
             ),
@@ -131,7 +145,10 @@ class _SearchScreenState extends State<SearchScreen> {
                 decoration: InputDecoration(
                   hintText: "Search products...",
                   hintStyle: TextStyle(color: AppTheme.textSecondary),
-                  prefixIcon: Icon(Icons.search_rounded, color: AppTheme.textSecondary),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    color: AppTheme.textSecondary,
+                  ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -147,7 +164,9 @@ class _SearchScreenState extends State<SearchScreen> {
               decoration: BoxDecoration(
                 color: _filtersVisible ? AppTheme.primary : AppTheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _filtersVisible ? AppTheme.primary : AppTheme.border),
+                border: Border.all(
+                  color: _filtersVisible ? AppTheme.primary : AppTheme.border,
+                ),
               ),
               child: Icon(
                 Icons.tune_rounded,
@@ -161,7 +180,7 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   bool _hasActiveFilter() =>
-      _selectedCategory != null || _minPrice > 0 || _maxPrice < 100000000;
+      _selectedCategory != null || _minPrice > 0 || _maxPrice < 20000000;
 
   Widget _buildFilterPanel() {
     return Container(
@@ -179,14 +198,20 @@ class _SearchScreenState extends State<SearchScreen> {
               children: _categories.map((cat) {
                 final selected = _selectedCategory == cat;
                 return GestureDetector(
-                  onTap: () => setState(() => _selectedCategory = selected ? null : cat),
+                  onTap: () =>
+                      setState(() => _selectedCategory = selected ? null : cat),
                   child: Container(
                     margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: selected ? AppTheme.primary : AppTheme.background,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: selected ? AppTheme.primary : AppTheme.border),
+                      border: Border.all(
+                        color: selected ? AppTheme.primary : AppTheme.border,
+                      ),
                     ),
                     child: Text(
                       cat,
@@ -208,20 +233,67 @@ class _SearchScreenState extends State<SearchScreen> {
               Text("Price Range", style: AppTheme.h2.copyWith(fontSize: 16)),
               Text(
                 "${FormatUtils.formatPrice(_minPrice)} - ${FormatUtils.formatPrice(_maxPrice)}",
-                style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w700, fontSize: 12),
+                style: TextStyle(
+                  color: AppTheme.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
-          RangeSlider(
-            values: RangeValues(_minPrice, _maxPrice),
-            min: 0,
-            max: 100000000,
-            activeColor: AppTheme.primary,
-            inactiveColor: AppTheme.border,
-            onChanged: (vals) => setState(() {
-              _minPrice = vals.start;
-              _maxPrice = vals.end;
-            }),
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _minPriceController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: "Min Price",
+                    filled: true,
+                    fillColor: AppTheme.background,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onChanged: (value) {
+                    int number = int.tryParse(value) ?? 0;
+                    if (number > _maxPrice) {
+                      _minPriceController.text = _maxPrice.toString();
+                      _minPrice = _maxPrice;
+                    }
+                    setState(() {
+                      _minPrice = double.tryParse(value) ?? 0;
+                    });
+                  },
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: TextField(
+                  controller: _maxPriceController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: "Max Price",
+                    filled: true,
+                    fillColor: AppTheme.background,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _maxPrice = double.tryParse(value) ?? 20000000;
+                    });
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -236,12 +308,20 @@ class _SearchScreenState extends State<SearchScreen> {
         spacing: 8,
         children: [
           if (_selectedCategory != null)
-            _filterChip(_selectedCategory!, () => setState(() => _selectedCategory = null)),
-          if (_minPrice > 0 || _maxPrice < 100000000)
-            _filterChip("Price Filter", () => setState(() {
-                  _minPrice = 0;
-                  _maxPrice = 100000000;
-                })),
+            _filterChip(
+              _selectedCategory!,
+              () => setState(() => _selectedCategory = null),
+            ),
+          if (_minPrice > 0 || _maxPrice < 20000000)
+            _filterChip(
+              "Price Filter",
+              () => setState(() {
+                _minPrice = 0;
+                _maxPrice = 20000000;
+                _maxPriceController.text = "0";
+                _minPriceController.text = "0";
+              }),
+            ),
         ],
       ),
     );
@@ -249,7 +329,10 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _filterChip(String label, VoidCallback onRemove) {
     return Chip(
-      label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+      label: Text(
+        label,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+      ),
       deleteIcon: const Icon(Icons.close, size: 14),
       onDeleted: onRemove,
       backgroundColor: AppTheme.primaryLight,
@@ -278,7 +361,11 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search_off_rounded, size: 64, color: AppTheme.textSecondary),
+          Icon(
+            Icons.search_off_rounded,
+            size: 64,
+            color: AppTheme.textSecondary,
+          ),
           const SizedBox(height: 16),
           Text("No results found", style: AppTheme.h2),
           Text("Try adjusting your filters", style: AppTheme.body),

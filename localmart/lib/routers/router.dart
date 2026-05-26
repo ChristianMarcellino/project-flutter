@@ -55,7 +55,7 @@ final GoRouter appRouter = GoRouter(
         return ProductsScreen(section: section);
       },
     ),
-    GoRoute(
+    GoRoute( 
       path: '/product/:id',
       builder: (context, state) {
         final id = state.pathParameters['id']!;

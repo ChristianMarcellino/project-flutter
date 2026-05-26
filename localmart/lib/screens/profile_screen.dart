@@ -40,16 +40,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .update({'username': newName.trim()});
-    
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+      'username': newName.trim(),
+    });
+
     if (mounted) {
       setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Username updated")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Username updated")));
     }
   }
 
@@ -66,11 +65,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           decoration: InputDecoration(
             hintText: "New username",
             hintStyle: TextStyle(color: AppTheme.textSecondary),
-            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.border)),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: AppTheme.border),
+            ),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
           TextButton(
             onPressed: () {
               _updateUsername(controller.text);
@@ -100,13 +104,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update({
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
         'latitude': position.latitude,
         'longitude': position.longitude,
-        'locationName': "📍 ${position.latitude.toStringAsFixed(2)}, ${position.longitude.toStringAsFixed(2)}"
+        'locationName':
+            "📍 ${position.latitude.toStringAsFixed(2)}, ${position.longitude.toStringAsFixed(2)}",
       });
 
       if (mounted) setState(() {});
@@ -120,10 +122,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (image == null) return;
     setState(() => _uploadingAvatar = true);
     final bytes = await image.readAsBytes();
-    final compressed = await FlutterImageCompress.compressWithList(bytes, quality: 70);
+    final compressed = await FlutterImageCompress.compressWithList(
+      bytes,
+      quality: 70,
+    );
     final base64Avatar = base64Encode(compressed);
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    await FirebaseFirestore.instance.collection('users').doc(uid).update({'avatar': base64Avatar});
+    await FirebaseFirestore.instance.collection('users').doc(uid).update({
+      'avatar': base64Avatar,
+    });
     if (mounted) setState(() => _uploadingAvatar = false);
   }
 
@@ -140,7 +147,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               final userData = userSnap.data ?? {};
               final username = userData['username'] ?? 'User';
               final avatar = userData['avatar'] as String?;
-              final location = userData['locationName'] as String? ?? 'Set location';
+              final location =
+                  userData['locationName'] as String? ?? 'Set location';
 
               return CustomScrollView(
                 slivers: [
@@ -153,29 +161,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           _buildSettingsSection(isDark),
                           const SizedBox(height: 32),
-                          _buildSectionHeader("My Active Listings", userSnap.data?['uid'] ?? ""),
+                          _buildSectionHeader(
+                            "My Active Listings",
+                            userSnap.data?['uid'] ?? "",
+                          ),
                         ],
                       ),
                     ),
                   ),
                   StreamBuilder<List<Product>>(
-                    stream: ProductService().getProductsBySeller(FirebaseAuth.instance.currentUser!.uid),
+                    stream: ProductService().getProductsBySeller(
+                      FirebaseAuth.instance.currentUser!.uid,
+                    ),
                     builder: (context, snap) {
                       final products = snap.data ?? [];
-                      if (products.isEmpty) return const SliverToBoxAdapter(child: SizedBox());
+                      if (products.isEmpty)
+                        return const SliverToBoxAdapter(child: SizedBox());
                       return SliverPadding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         sliver: SliverGrid(
                           delegate: SliverChildBuilderDelegate(
-                            (context, index) => GridProductCard(product: products[index]),
+                            (context, index) =>
+                                GridProductCard(product: products[index]),
                             childCount: products.length,
                           ),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            mainAxisExtent: 240,
-                          ),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 16,
+                                crossAxisSpacing: 16,
+                                mainAxisExtent: 240,
+                              ),
                         ),
                       );
                     },
@@ -187,11 +203,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onPressed: () => authService.signOut(),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppTheme.error,
-                          side: BorderSide(color: AppTheme.error.withValues(alpha: 0.3)),
+                          side: BorderSide(
+                            color: AppTheme.error.withValues(alpha: 0.3),
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
-                        child: const Text("Sign Out", style: TextStyle(fontWeight: FontWeight.w700)),
+                        child: const Text(
+                          "Sign Out",
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ),
                   ),
@@ -210,7 +233,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.fromLTRB(20, 64, 20, 32),
         decoration: BoxDecoration(
           color: AppTheme.surface,
-          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(32),
+          ),
         ),
         child: Column(
           children: [
@@ -224,21 +249,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: AppTheme.primary, width: 3),
-                      image: avatar != null 
-                        ? DecorationImage(image: MemoryImage(base64Decode(avatar)), fit: BoxFit.cover)
-                        : null,
+                      image: avatar != null
+                          ? DecorationImage(
+                              image: MemoryImage(base64Decode(avatar)),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
                     ),
-                    child: avatar == null ? Icon(Icons.person, size: 50, color: AppTheme.textSecondary) : null,
+                    child: avatar == null
+                        ? Icon(
+                            Icons.person,
+                            size: 50,
+                            color: AppTheme.textSecondary,
+                          )
+                        : null,
                   ),
                 ),
-                if (_uploadingAvatar) const Positioned.fill(child: CircularProgressIndicator()),
+                if (_uploadingAvatar)
+                  const Positioned.fill(child: CircularProgressIndicator()),
                 Positioned(
                   bottom: 0,
                   right: 0,
                   child: Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle),
-                    child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                 ),
               ],
@@ -248,15 +290,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(name, style: AppTheme.h1.copyWith(fontSize: 22)),
-                IconButton(onPressed: () => _showEditNameDialog(name), icon: Icon(Icons.edit_outlined, size: 18, color: AppTheme.primary)),
+                IconButton(
+                  onPressed: () => _showEditNameDialog(name),
+                  icon: Icon(
+                    Icons.edit_outlined,
+                    size: 18,
+                    color: AppTheme.primary,
+                  ),
+                ),
               ],
             ),
             GestureDetector(
               onTap: _updateLocation,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: AppTheme.background, borderRadius: BorderRadius.circular(20)),
-                child: Text(loc, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.background,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  loc,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ],
@@ -274,12 +336,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Row(
             children: [
-              Icon(isDark ? Icons.dark_mode : Icons.light_mode, color: AppTheme.primary),
+              Icon(
+                isDark ? Icons.dark_mode : Icons.light_mode,
+                color: AppTheme.primary,
+              ),
               const SizedBox(width: 12),
-              Text("Dark Appearance", style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+              Text(
+                "Dark Appearance",
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
             ],
           ),
-          Switch(value: isDark, onChanged: _toggleDarkMode, activeColor: AppTheme.primary),
+          Switch(
+            value: isDark,
+            onChanged: _toggleDarkMode,
+            activeColor: AppTheme.primary,
+          ),
         ],
       ),
     );
@@ -290,7 +365,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(title, style: AppTheme.h2),
-        TextButton(onPressed: () => context.push("/products", extra: "seller:$uid"), child: const Text("See All")),
+        TextButton(
+          onPressed: () => context.push("/products", extra: "listing"),
+          child: const Text("See All"),
+        ),
       ],
     );
   }
