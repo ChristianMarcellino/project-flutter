@@ -36,18 +36,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _openWhatsApp(String phone, String title) async {
-    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+  final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
 
-    final message = Uri.encodeComponent(
-      "Hi, I'm interested in your item: $title on LocalMart",
+  final message = Uri.encodeComponent(
+    "Hi, I'm interested in your item: $title on LocalMart",
+  );
+
+  final Uri uri = Uri.parse(
+    "https://wa.me/$cleanPhone?text=$message",
+  );
+
+  try {
+    await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
     );
-
-    final url = Uri.parse("https://wa.me/$cleanPhone?text=$message");
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    }
+  } catch (e) {
+    debugPrint("Could not launch WhatsApp: $e");
   }
+}
 
   @override
   void dispose() {
