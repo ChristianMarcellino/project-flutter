@@ -143,7 +143,6 @@ class AuthService extends ChangeNotifier {
           'phoneNumber': phoneNumber,
           'createdAt': FieldValue.serverTimestamp(),
           'provider': 'email',
-          'emailVerified': false,
         });
       }
 

@@ -1,11 +1,13 @@
 import 'dart:convert';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:localmart/models/product.dart';
+import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/services/product_service.dart';
+import 'package:localmart/services/user_service.dart';
 import 'package:localmart/theme/app_theme.dart';
 import 'package:localmart/utils/format_utils.dart';
+import 'package:geolocator/geolocator.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
@@ -18,9 +20,23 @@ class ProductCard extends StatefulWidget {
 
 class _ProductCardState extends State<ProductCard> {
   bool _likeLoading = false;
+  double _userLat = 0.0;
+  double _userLong = 0.0;
+
+  Future<void> _loadUser() async {
+    final user = await UserService.getUser(authService.currentUser!.uid);
+
+    final userLat = (user?["latitude"] ?? 0).toDouble();
+    final userLong = (user?["longitude"] ?? 0).toDouble();
+
+    setState(() {
+      _userLat = userLat;
+      _userLong = userLong;
+    });
+  }
 
   Future<void> _toggleLike() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = authService.currentUser;
     if (user == null || _likeLoading) return;
     setState(() => _likeLoading = true);
     await ProductService().toggleLike(widget.product.id, user.uid);
@@ -28,9 +44,37 @@ class _ProductCardState extends State<ProductCard> {
   }
 
   @override
+  void initState() {
+    _loadUser();
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final imageBytes = widget.product.images.isNotEmpty ? widget.product.images.first : "";
-    final user = FirebaseAuth.instance.currentUser;
+    final distanceKm =
+        Geolocator.distanceBetween(
+          _userLat,
+          _userLong,
+          widget.product.latitude,
+          widget.product.longitude,
+        ) /
+        1000;
+    String distanceText() {
+      if (_userLat == 0 || _userLong == 0) {
+        return "Unknown distance";
+      }
+
+      if (distanceKm < 1) {
+        return "${(distanceKm * 1000).round()} m away";
+      }
+
+      return "${distanceKm.toStringAsFixed(1)} km away";
+    }
+
+    final imageBytes = widget.product.images.isNotEmpty
+        ? widget.product.images.first
+        : "";
+    final user = authService.currentUser;
     final isLiked = user != null && widget.product.likedBy.contains(user.uid);
 
     return GestureDetector(
@@ -52,10 +96,14 @@ class _ProductCardState extends State<ProductCard> {
                       ? Image.memory(
                           base64Decode(imageBytes),
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            color: AppTheme.border,
-                            child: Icon(Icons.broken_image_outlined, color: AppTheme.textSecondary),
-                          ),
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                color: AppTheme.border,
+                                child: Icon(
+                                  Icons.broken_image_outlined,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
                         )
                       : Container(
                           decoration: BoxDecoration(
@@ -63,7 +111,10 @@ class _ProductCardState extends State<ProductCard> {
                               colors: [AppTheme.border, AppTheme.background],
                             ),
                           ),
-                          child: Icon(Icons.image_outlined, color: AppTheme.textSecondary),
+                          child: Icon(
+                            Icons.image_outlined,
+                            color: AppTheme.textSecondary,
+                          ),
                         ),
                   Positioned(
                     top: 10,
@@ -86,9 +137,13 @@ class _ProductCardState extends State<ProductCard> {
                                 ),
                               )
                             : Icon(
-                                isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                isLiked
+                                    ? Icons.favorite_rounded
+                                    : Icons.favorite_border_rounded,
                                 size: 18,
-                                color: isLiked ? AppTheme.error : AppTheme.textSecondary,
+                                color: isLiked
+                                    ? AppTheme.error
+                                    : AppTheme.textSecondary,
                               ),
                       ),
                     ),
@@ -126,20 +181,43 @@ class _ProductCardState extends State<ProductCard> {
                     const Spacer(),
                     Row(
                       children: [
-                        Icon(Icons.location_on_outlined, size: 12, color: AppTheme.textSecondary),
+                        Icon(
+                          Icons.location_on_outlined,
+                          size: 12,
+                          color: AppTheme.textSecondary,
+                        ),
                         const SizedBox(width: 4),
                         Text(
-                          FormatUtils.randomDistance(),
-                          style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                          widget.product.locationName,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textSecondary,
+                          ),
                         ),
                         const Spacer(),
-                        Icon(Icons.star_rounded, size: 12, color: AppTheme.warning),
+                        Icon(
+                          Icons.star_rounded,
+                          size: 12,
+                          color: AppTheme.warning,
+                        ),
                         const SizedBox(width: 2),
                         Text(
                           "4.8",
-                          style: TextStyle(fontSize: 11, color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
+                    ),
+                    Text(
+                      distanceText(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),

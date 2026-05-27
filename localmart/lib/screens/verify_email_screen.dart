@@ -1,6 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/theme/app_theme.dart';
 import 'package:localmart/main.dart';
 
@@ -26,7 +26,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   }
 
   Future<void> resendEmail() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = authService.currentUser;
     if (user == null) return;
     setState(() => _isSending = true);
     try {
@@ -41,12 +41,12 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   }
 
   Future<void> checkStatus() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = authService.currentUser;
     if (user == null) return;
     setState(() => _isChecking = true);
     await user.reload();
     if (mounted) setState(() => _isChecking = false);
-    if (FirebaseAuth.instance.currentUser?.emailVerified ?? false) {
+    if (authService.currentUser?.emailVerified ?? false) {
       if (mounted) context.go('/');
     } else {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email not verified yet.')));
@@ -75,7 +75,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                     Text('Verify Your Email', style: AppTheme.h1),
                     const SizedBox(height: 12),
                     Text(
-                      'Check your inbox for the verification link\nsent to ${FirebaseAuth.instance.currentUser?.email}',
+                      'Check your inbox for the verification link\nsent to ${authService.currentUser?.email}',
                       textAlign: TextAlign.center,
                       style: AppTheme.body,
                     ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:localmart/models/product.dart';
 import 'package:localmart/services/auth_service.dart';
+import 'package:localmart/services/user_service.dart';
 import 'package:localmart/services/product_service.dart';
 import 'package:localmart/theme/app_theme.dart';
 import 'package:localmart/widgets/grid_product_card.dart';
@@ -18,6 +19,27 @@ class ProductsScreen extends StatefulWidget {
 class _ProductsScreenState extends State<ProductsScreen> {
   static const int _pageSize = 10;
   int _currentPage = 1;
+
+  double _userLat = 0.0;
+  double _userLong = 0.0;
+
+  Future<void> _loadUser() async {
+    final user = await UserService.getUser(authService.currentUser!.uid);
+
+    final userLat = (user?["latitude"] ?? 0).toDouble();
+    final userLong = (user?["longitude"] ?? 0).toDouble();
+
+    setState(() {
+      _userLat = userLat;
+      _userLong = userLong;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
 
   String get _title {
     switch (widget.section) {
@@ -118,8 +140,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 padding: const EdgeInsets.all(16),
                 sliver: SliverGrid(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) =>
-                        GridProductCard(product: visible[index]),
+                    (context, index) => GridProductCard(
+                      product: visible[index],
+                      userLat: _userLat,
+                      userLong: _userLong,
+                    ),
                     childCount: visible.length,
                   ),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

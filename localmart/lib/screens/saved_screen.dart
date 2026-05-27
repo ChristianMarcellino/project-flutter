@@ -1,16 +1,43 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:localmart/models/product.dart';
+import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/services/product_service.dart';
+import 'package:localmart/services/user_service.dart';
 import 'package:localmart/theme/app_theme.dart';
 import 'package:localmart/widgets/grid_product_card.dart';
 
-class SavedScreen extends StatelessWidget {
+class SavedScreen extends StatefulWidget {
   const SavedScreen({super.key});
 
   @override
+  State<SavedScreen> createState() => _SavedScreenState();
+}
+
+class _SavedScreenState extends State<SavedScreen> {
+  double _userLat = 0.0;
+  double _userLong = 0.0;
+
+  Future<void> _loadUser() async {
+    final user = await UserService.getUser(authService.currentUser!.uid);
+
+    final userLat = (user?["latitude"] ?? 0).toDouble();
+    final userLong = (user?["longitude"] ?? 0).toDouble();
+
+    setState(() {
+      _userLat = userLat;
+      _userLong = userLong;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = authService.currentUser;
 
     if (user == null) {
       return Scaffold(
@@ -33,7 +60,9 @@ class SavedScreen extends StatelessWidget {
         stream: ProductService().getAllProducts(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator(color: AppTheme.primary));
+            return Center(
+              child: CircularProgressIndicator(color: AppTheme.primary),
+            );
           }
 
           final all = snapshot.data ?? [];
@@ -53,7 +82,11 @@ class SavedScreen extends StatelessWidget {
               crossAxisSpacing: 16,
               mainAxisExtent: 240,
             ),
-            itemBuilder: (context, index) => GridProductCard(product: saved[index]),
+            itemBuilder: (context, index) => GridProductCard(
+              product: saved[index],
+              userLat: _userLat,
+              userLong: _userLong,
+            ),
           );
         },
       ),
@@ -65,7 +98,11 @@ class SavedScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.favorite_border_rounded, size: 64, color: AppTheme.textSecondary),
+          Icon(
+            Icons.favorite_border_rounded,
+            size: 64,
+            color: AppTheme.textSecondary,
+          ),
           const SizedBox(height: 16),
           Text("Nothing saved yet", style: AppTheme.h2),
           Text("Heart items to see them here", style: AppTheme.body),

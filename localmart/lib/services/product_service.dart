@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:localmart/models/product.dart';
+import 'package:localmart/services/auth_service.dart';
 
 class ProductService {
   static final CollectionReference productsRef = FirebaseFirestore.instance
@@ -22,7 +22,7 @@ class ProductService {
     required String category,
     required List<String> images,
   }) async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = authService.currentUser;
     if (user == null) throw Exception("User not logged in");
 
     final userDoc = await FirebaseFirestore.instance

@@ -1,4 +1,3 @@
-import 'dart:math';
 
 class FormatUtils {
   static String formatPrice(double price) {
@@ -15,8 +14,4 @@ class FormatUtils {
     return "Rp $result";
   }
 
-  static String randomDistance() {
-    final value = (Random().nextDouble() * 5 + 0.3);
-    return "${value.toStringAsFixed(1)} km";
-  }
 }

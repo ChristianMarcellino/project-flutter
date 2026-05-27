@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:localmart/services/product_service.dart';
 import 'package:localmart/theme/app_theme.dart';
@@ -31,14 +32,30 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final image = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 50,
+
+    final image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image == null) return;
+    final bytes = await image.readAsBytes();
+    final compressed = await FlutterImageCompress.compressWithList(
+      bytes,
+
+      quality: 50,
+
+      minWidth: 800,
+
+      minHeight: 800,
+
+      format: CompressFormat.jpeg,
     );
-    if (image != null) {
-      final bytes = await image.readAsBytes();
-      setState(() => _images.add(base64Encode(bytes)));
-    }
+
+    final base64 = base64Encode(compressed);
+
+    debugPrint("Image size: ${compressed.length}");
+
+    setState(() {
+      _images.add(base64);
+    });
   }
 
   Future<void> _submit() async {
@@ -90,6 +107,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     ),
                     const SizedBox(height: 12),
                     _buildImagePicker(),
+                    Text(
+                      "Image must be less than 1 MB",
+                      style: TextStyle(color: Colors.red),
+                    ),
                     const SizedBox(height: 32),
                     _buildTextField(
                       "Product Title",
@@ -151,7 +172,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
         itemCount: _images.length + 1,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
-          // Add Image Button
           if (index == 0) {
             return GestureDetector(
               onTap: _pickImage,
@@ -212,7 +232,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 ),
               ),
 
-              // Delete Button
               Positioned(
                 top: 6,
                 right: 6,
