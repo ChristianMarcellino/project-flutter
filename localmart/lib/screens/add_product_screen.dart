@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:localmart/constants.dart';
 import 'package:localmart/services/product_service.dart';
 import 'package:localmart/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
@@ -22,36 +23,29 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final List<String> _images = [];
   bool _isLoading = false;
 
-  final List<String> _categories = [
-    "Electronics",
-    "Fashion",
-    "Home & Living",
-    "Health & Beauty",
-    "Other",
-  ];
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _priceController.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-
     final image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image == null) return;
     final bytes = await image.readAsBytes();
     final compressed = await FlutterImageCompress.compressWithList(
       bytes,
-
       quality: 50,
-
       minWidth: 800,
-
       minHeight: 800,
-
       format: CompressFormat.jpeg,
     );
 
     final base64 = base64Encode(compressed);
-
-    debugPrint("Image size: ${compressed.length}");
 
     setState(() {
       _images.add(base64);
@@ -71,9 +65,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
       );
       if (mounted) context.pop();
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -107,7 +103,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     ),
                     const SizedBox(height: 12),
                     _buildImagePicker(),
-                    Text(
+                    const Text(
                       "Image must be less than 1 MB",
                       style: TextStyle(color: Colors.red),
                     ),
@@ -125,7 +121,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     ),
                     _buildDropdown(
                       "Category",
-                      _categories,
+                      AppConstants.categories,
                       _selectedCategory,
                       (v) => setState(() => _selectedCategory = v!),
                     ),
@@ -170,7 +166,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _images.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           if (index == 0) {
             return GestureDetector(
@@ -217,7 +213,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     BoxShadow(
                       blurRadius: 8,
                       offset: const Offset(0, 4),
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                     ),
                   ],
                 ),
@@ -231,7 +227,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ),
                 ),
               ),
-
               Positioned(
                 top: 6,
                 right: 6,
@@ -244,7 +239,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
+                      color: Colors.black.withValues(alpha: 0.6),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -322,7 +317,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: value,
+            initialValue: value,
             items: items
                 .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                 .toList(),

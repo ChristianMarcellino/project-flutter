@@ -25,14 +25,15 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   Future<void> _loadUser() async {
     final user = await UserService.getUser(authService.currentUser!.uid);
+    final userLat = (user?['latitude'] ?? 0).toDouble();
+    final userLong = (user?['longitude'] ?? 0).toDouble();
 
-    final userLat = (user?["latitude"] ?? 0).toDouble();
-    final userLong = (user?["longitude"] ?? 0).toDouble();
-
-    setState(() {
-      _userLat = userLat;
-      _userLong = userLong;
-    });
+    if (mounted) {
+      setState(() {
+        _userLat = userLat;
+        _userLong = userLong;
+      });
+    }
   }
 
   @override
@@ -45,10 +46,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
     switch (widget.section) {
       case 'trending':
         return 'Trending Deals';
-
       case 'listing':
         return 'My Active Listings';
-
       default:
         return 'Nearby Products';
     }
@@ -58,10 +57,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
     switch (widget.section) {
       case 'trending':
         return 'Most popular items';
-
       case 'listing':
         return 'Products you are selling';
-
       default:
         return 'Items close to you';
     }

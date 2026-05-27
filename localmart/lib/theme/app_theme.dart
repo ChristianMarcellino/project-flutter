@@ -8,6 +8,7 @@ class AppTheme {
   static Color get primaryLight => isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.3) : const Color(0xFFEEF3FF);
   
   static Color get background => isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+  static Color get scaffoldBackground => isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB);
   static Color get surface => isDark ? const Color(0xFF1E293B) : const Color(0xFFFFFFFF);
   
   static Color get textPrimary => isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
@@ -18,6 +19,31 @@ class AppTheme {
   static Color get success => const Color(0xFF10B981);
   static Color get error => const Color(0xFFF43F5E);
   static Color get warning => const Color(0xFFF59E0B);
+
+  static InputDecoration inputDecoration({required String hintText}) {
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: TextStyle(color: textSecondary),
+      filled: true,
+      fillColor: surface,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 16,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: primary),
+      ),
+    );
+  }
 
   static BoxDecoration get cardDecoration => BoxDecoration(
     color: surface,

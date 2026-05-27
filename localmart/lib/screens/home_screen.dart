@@ -10,7 +10,7 @@ import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/services/user_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  HomeScreen({super.key});
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -48,15 +48,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadUser() async {
     final user = await UserService.getUser(authService.currentUser!.uid);
 
-    final locationName = user?["locationName"];
-    final userLat = (user?["latitude"] ?? 0).toDouble();
-    final userLong = (user?["longitude"] ?? 0).toDouble();
+    final locationName = user?['locationName'] ?? '';
+    final userLat = (user?['latitude'] ?? 0).toDouble();
+    final userLong = (user?['longitude'] ?? 0).toDouble();
 
-    setState(() {
-      _locationName = locationName;
-      _userLat = userLat;
-      _userLong = userLong;
-    });
+    if (mounted) {
+      setState(() {
+        _locationName = locationName;
+        _userLat = userLat;
+        _userLong = userLong;
+      });
+    }
   }
 
   @override

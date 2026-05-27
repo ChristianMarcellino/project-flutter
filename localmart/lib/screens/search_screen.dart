@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:localmart/constants.dart';
 import 'package:localmart/models/product.dart';
 import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/services/product_service.dart';
@@ -33,27 +34,17 @@ class _SearchScreenState extends State<SearchScreen> {
   double _userLat = 0.0;
   double _userLong = 0.0;
 
-  final List<String> _categories = [
-    "Electronics",
-    "Fashion",
-    "Home & Living",
-    "Health & Beauty",
-    "Food & Beverages",
-    "Sports & Hobbies",
-    "Pets",
-    "Other",
-  ];
-
   Future<void> _loadUser() async {
     final user = await UserService.getUser(authService.currentUser!.uid);
+    final userLat = (user?['latitude'] ?? 0).toDouble();
+    final userLong = (user?['longitude'] ?? 0).toDouble();
 
-    final userLat = (user?["latitude"] ?? 0).toDouble();
-    final userLong = (user?["longitude"] ?? 0).toDouble();
-
-    setState(() {
-      _userLat = userLat;
-      _userLong = userLong;
-    });
+    if (mounted) {
+      setState(() {
+        _userLat = userLat;
+        _userLong = userLong;
+      });
+    }
   }
 
   @override
@@ -102,11 +93,8 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           children: [
             _buildSearchBar(context),
-
             if (_filtersVisible) _buildFilterPanel(),
-
             _buildActiveFilters(),
-
             Expanded(
               child: StreamBuilder<List<Product>>(
                 stream: ProductService().getAllProducts(),
@@ -185,7 +173,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 onChanged: (val) => setState(() => _query = val),
                 style: TextStyle(color: AppTheme.textPrimary),
                 decoration: InputDecoration(
-                  hintText: "Search products, seller, city...",
+                  hintText: 'Search products, seller, city...',
                   hintStyle: TextStyle(color: AppTheme.textSecondary),
                   prefixIcon: Icon(
                     Icons.search_rounded,
@@ -232,15 +220,13 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Category", style: AppTheme.h2.copyWith(fontSize: 16)),
-
+          Text('Category', style: AppTheme.h2.copyWith(fontSize: 16)),
           const SizedBox(height: 12),
-
           SizedBox(
             height: 40,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              children: _categories.map((cat) {
+              children: AppConstants.categories.map((cat) {
                 final selected = _selectedCategory == cat;
 
                 return GestureDetector(
@@ -273,16 +259,13 @@ class _SearchScreenState extends State<SearchScreen> {
               }).toList(),
             ),
           ),
-
           const SizedBox(height: 24),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Price Range", style: AppTheme.h2.copyWith(fontSize: 16)),
-
+              Text('Price Range', style: AppTheme.h2.copyWith(fontSize: 16)),
               Text(
-                "${FormatUtils.formatPrice(_minPrice)} - ${_maxPrice == null ? 'Unlimited' : FormatUtils.formatPrice(_maxPrice!)}",
+                '${FormatUtils.formatPrice(_minPrice)} - ${_maxPrice == null ? 'Unlimited' : FormatUtils.formatPrice(_maxPrice!)}',
                 style: TextStyle(
                   color: AppTheme.primary,
                   fontWeight: FontWeight.w700,
@@ -291,9 +274,7 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ],
           ),
-
           const SizedBox(height: 16),
-
           Row(
             children: [
               Expanded(
@@ -301,7 +282,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   controller: _minPriceController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    hintText: "Min Price",
+                    hintText: 'Min Price',
                     filled: true,
                     fillColor: AppTheme.background,
                     border: OutlineInputBorder(
@@ -316,15 +297,13 @@ class _SearchScreenState extends State<SearchScreen> {
                   },
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: TextField(
                   controller: _maxPriceController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    hintText: "Max Price (Optional)",
+                    hintText: 'Max Price (Optional)',
                     filled: true,
                     fillColor: AppTheme.background,
                     border: OutlineInputBorder(
@@ -363,14 +342,12 @@ class _SearchScreenState extends State<SearchScreen> {
                 _selectedCategory = null;
               }),
             ),
-
           if (_minPrice > 0 || _maxPrice != null)
             _filterChip(
-              "Price Filter",
+              'Price Filter',
               () => setState(() {
                 _minPrice = 0;
                 _maxPrice = null;
-
                 _minPriceController.clear();
                 _maxPriceController.clear();
               }),
@@ -401,13 +378,10 @@ class _SearchScreenState extends State<SearchScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.search_rounded, size: 64, color: AppTheme.textSecondary),
-
           const SizedBox(height: 16),
-
-          Text("Find what you need", style: AppTheme.h2),
-
+          Text('Find what you need', style: AppTheme.h2),
           Text(
-            "Try searching for title, seller, or city",
+            'Try searching for title, seller, or city',
             style: AppTheme.body,
           ),
         ],
@@ -425,12 +399,9 @@ class _SearchScreenState extends State<SearchScreen> {
             size: 64,
             color: AppTheme.textSecondary,
           ),
-
           const SizedBox(height: 16),
-
-          Text("No results found", style: AppTheme.h2),
-
-          Text("Try adjusting your filters", style: AppTheme.body),
+          Text('No results found', style: AppTheme.h2),
+          Text('Try adjusting your filters', style: AppTheme.body),
         ],
       ),
     );

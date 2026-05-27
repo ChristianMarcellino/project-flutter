@@ -19,14 +19,15 @@ class _SavedScreenState extends State<SavedScreen> {
 
   Future<void> _loadUser() async {
     final user = await UserService.getUser(authService.currentUser!.uid);
+    final userLat = (user?['latitude'] ?? 0).toDouble();
+    final userLong = (user?['longitude'] ?? 0).toDouble();
 
-    final userLat = (user?["latitude"] ?? 0).toDouble();
-    final userLong = (user?["longitude"] ?? 0).toDouble();
-
-    setState(() {
-      _userLat = userLat;
-      _userLong = userLong;
-    });
+    if (mounted) {
+      setState(() {
+        _userLat = userLat;
+        _userLong = userLong;
+      });
+    }
   }
 
   @override
@@ -43,7 +44,7 @@ class _SavedScreenState extends State<SavedScreen> {
       return Scaffold(
         backgroundColor: AppTheme.background,
         body: Center(
-          child: Text("Please log in to see saved items", style: AppTheme.body),
+          child: Text('Please log in to see saved items', style: AppTheme.body),
         ),
       );
     }
@@ -54,7 +55,7 @@ class _SavedScreenState extends State<SavedScreen> {
         backgroundColor: AppTheme.background,
         elevation: 0,
         centerTitle: true,
-        title: Text("Saved Items", style: AppTheme.h2),
+        title: Text('Saved Items', style: AppTheme.h2),
       ),
       body: StreamBuilder<List<Product>>(
         stream: ProductService().getAllProducts(),
@@ -104,8 +105,8 @@ class _SavedScreenState extends State<SavedScreen> {
             color: AppTheme.textSecondary,
           ),
           const SizedBox(height: 16),
-          Text("Nothing saved yet", style: AppTheme.h2),
-          Text("Heart items to see them here", style: AppTheme.body),
+          Text('Nothing saved yet', style: AppTheme.h2),
+          Text('Heart items to see them here', style: AppTheme.body),
         ],
       ),
     );

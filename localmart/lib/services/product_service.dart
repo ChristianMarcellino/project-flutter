@@ -1,10 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:localmart/constants.dart';
 import 'package:localmart/models/product.dart';
 import 'package:localmart/services/auth_service.dart';
 
 class ProductService {
+  ProductService._privateConstructor();
+  static final ProductService _instance = ProductService._privateConstructor();
+  factory ProductService() => _instance;
+
   static final CollectionReference productsRef = FirebaseFirestore.instance
-      .collection('products');
+      .collection(AppConstants.productsCollection);
 
   Stream<Product?> streamProductById(String id) {
     return productsRef.doc(id).snapshots().map((doc) {
@@ -26,7 +31,7 @@ class ProductService {
     if (user == null) throw Exception("User not logged in");
 
     final userDoc = await FirebaseFirestore.instance
-        .collection('users')
+        .collection(AppConstants.usersCollection)
         .doc(user.uid)
         .get();
     final userData = userDoc.data() ?? {};

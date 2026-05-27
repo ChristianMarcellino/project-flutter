@@ -9,6 +9,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:localmart/screens/saved_screen.dart';
 import 'package:localmart/screens/search_screen.dart';
 import 'package:localmart/services/global_pref_service.dart';
+import 'package:localmart/theme/app_theme.dart';
 
 final ValueNotifier<bool> darkModeNotifier = ValueNotifier(false);
 
@@ -21,14 +22,9 @@ void main() async {
   runApp(const MainApp());
 }
 
-class MainApp extends StatefulWidget {
+class MainApp extends StatelessWidget {
   const MainApp({super.key});
 
-  @override
-  State<MainApp> createState() => _MainAppState();
-}
-
-class _MainAppState extends State<MainApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
@@ -48,7 +44,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  final List<Widget> _screens = [
+  final List<Widget> _screens = const [
     HomeScreen(),
     SearchScreen(),
     SavedScreen(),
@@ -61,13 +57,12 @@ class _MainScreenState extends State<MainScreen> {
       valueListenable: darkModeNotifier,
       builder: (context, isDark, _) {
         return Scaffold(
-          backgroundColor:
-              isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB),
+          backgroundColor: AppTheme.scaffoldBackground,
           body: _screens[_currentIndex],
           bottomNavigationBar: Container(
             height: 78,
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1F2937) : Colors.white,
+              color: AppTheme.surface,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
@@ -82,11 +77,11 @@ class _MainScreenState extends State<MainScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildNavItem(0, isDark ? Icons.home : Icons.home_outlined, "Home"),
-                  _buildNavItem(1, Icons.search, "Search"),
+                  _buildNavItem(0, isDark ? Icons.home : Icons.home_outlined, "Home", isDark),
+                  _buildNavItem(1, Icons.search, "Search", isDark),
                   _buildAddButton(),
-                  _buildNavItem(2, _currentIndex == 2 ? Icons.favorite : Icons.favorite_border, "Saved"),
-                  _buildNavItem(3, _currentIndex == 3 ? Icons.person : Icons.person_outline, "Profile"),
+                  _buildNavItem(2, _currentIndex == 2 ? Icons.favorite : Icons.favorite_border, "Saved", isDark),
+                  _buildNavItem(3, _currentIndex == 3 ? Icons.person : Icons.person_outline, "Profile", isDark),
                 ],
               ),
             ),
@@ -96,37 +91,32 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem(int index, IconData icon, String label, bool isDark) {
     final isSelected = _currentIndex == index;
-    return ValueListenableBuilder<bool>(
-      valueListenable: darkModeNotifier,
-      builder: (context, isDark, _) {
-        final activeColor = const Color(0xFF2563EB);
-        final inactiveColor = isDark ? Colors.white54 : Colors.grey.shade500;
-        
-        return GestureDetector(
-          onTap: () => setState(() => _currentIndex = index),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                color: isSelected ? activeColor : inactiveColor,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: isSelected ? activeColor : inactiveColor,
-                ),
-              ),
-            ],
+    final activeColor = AppTheme.primary;
+    final inactiveColor = AppTheme.textSecondary;
+
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            color: isSelected ? activeColor : inactiveColor,
           ),
-        );
-      },
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isSelected ? activeColor : inactiveColor,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -141,9 +131,9 @@ class _MainScreenState extends State<MainScreen> {
       child: Container(
         width: 58,
         height: 58,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Color(0xFF2563EB),
+          color: AppTheme.primary,
         ),
         child: const Icon(Icons.add, color: Colors.white, size: 30),
       ),

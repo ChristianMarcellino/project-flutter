@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Product {
@@ -52,8 +51,8 @@ class Product {
     return Product(
       id: documentId,
       sellerId: map['sellerId'] ?? '',
-      sellerName: map["sellerName"] ?? '',
-      sellerPhoneNumber: map["sellerPhoneNumber"] ?? '',
+      sellerName: map['sellerName'] ?? '',
+      sellerPhoneNumber: map['sellerPhoneNumber'] ?? '',
       title: map['title'] ?? '',
       description: map['description'] ?? '',
       category: map['category'] ?? '',
@@ -76,8 +75,8 @@ class Product {
 
   Map<String, dynamic> toMap() {
     return {
-      'sellerName' : sellerName,
-      'sellerPhoneNumber' : sellerPhoneNumber,
+      'sellerName': sellerName,
+      'sellerPhoneNumber': sellerPhoneNumber,
       'sellerId': sellerId,
       'title': title,
       'description': description,
@@ -97,5 +96,53 @@ class Product {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };
+  }
+
+  Product copyWith({
+    String? id,
+    String? sellerId,
+    String? sellerName,
+    String? sellerPhoneNumber,
+    String? title,
+    String? description,
+    String? category,
+    String? condition,
+    double? price,
+    bool? negotiable,
+    List<String>? images,
+    String? locationName,
+    double? latitude,
+    double? longitude,
+    List<String>? buyerTargets,
+    int? likesCount,
+    List<String>? likedBy,
+    int? commentsCount,
+    String? status,
+    Timestamp? createdAt,
+    Timestamp? updatedAt,
+  }) {
+    return Product(
+      id: id ?? this.id,
+      sellerId: sellerId ?? this.sellerId,
+      sellerName: sellerName ?? this.sellerName,
+      sellerPhoneNumber: sellerPhoneNumber ?? this.sellerPhoneNumber,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      category: category ?? this.category,
+      condition: condition ?? this.condition,
+      price: price ?? this.price,
+      negotiable: negotiable ?? this.negotiable,
+      images: images ?? this.images,
+      locationName: locationName ?? this.locationName,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      buyerTargets: buyerTargets ?? this.buyerTargets,
+      likesCount: likesCount ?? this.likesCount,
+      likedBy: likedBy ?? this.likedBy,
+      commentsCount: commentsCount ?? this.commentsCount,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
   }
 }

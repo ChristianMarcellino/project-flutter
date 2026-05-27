@@ -26,27 +26,25 @@ final GoRouter appRouter = GoRouter(
       return '/login';
     }
 
-    if (isLoggedIn && !isVerified) {
+    if (!isVerified) {
       if (isOnVerifyEmail) return null;
       return '/verify-email';
     }
 
-    if (isLoggedIn && isVerified) {
-      if (isOnRegister || isOnVerifyEmail || isOnLogin) return '/';
-      return null;
+    if (isOnRegister || isOnVerifyEmail || isOnLogin) {
+      return '/';
     }
 
     return null;
   },
-
   routes: [
-    GoRoute(path: '/', builder: (context, state) => MainScreen()),
-    GoRoute(path: '/register', builder: (context, state) => RegisterScreen()),
+    GoRoute(path: '/', builder: (context, state) => const MainScreen()),
+    GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
     GoRoute(
       path: '/verify-email',
-      builder: (context, state) => VerifyEmailScreen(),
+      builder: (context, state) => const VerifyEmailScreen(),
     ),
-    GoRoute(path: '/login', builder: (context, state) => LoginScreen()),
+    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(path: '/search', builder: (context, state) => const SearchScreen(showBack: true)),
     GoRoute(
       path: '/products',
@@ -55,7 +53,7 @@ final GoRouter appRouter = GoRouter(
         return ProductsScreen(section: section);
       },
     ),
-    GoRoute( 
+    GoRoute(
       path: '/product/:id',
       builder: (context, state) {
         final id = state.pathParameters['id']!;

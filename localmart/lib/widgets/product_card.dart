@@ -7,7 +7,7 @@ import 'package:localmart/services/product_service.dart';
 import 'package:localmart/services/user_service.dart';
 import 'package:localmart/theme/app_theme.dart';
 import 'package:localmart/utils/format_utils.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:localmart/utils/distance_utils.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
@@ -25,14 +25,15 @@ class _ProductCardState extends State<ProductCard> {
 
   Future<void> _loadUser() async {
     final user = await UserService.getUser(authService.currentUser!.uid);
+    final userLat = (user?['latitude'] ?? 0).toDouble();
+    final userLong = (user?['longitude'] ?? 0).toDouble();
 
-    final userLat = (user?["latitude"] ?? 0).toDouble();
-    final userLong = (user?["longitude"] ?? 0).toDouble();
-
-    setState(() {
-      _userLat = userLat;
-      _userLong = userLong;
-    });
+    if (mounted) {
+      setState(() {
+        _userLat = userLat;
+        _userLong = userLong;
+      });
+    }
   }
 
   Future<void> _toggleLike() async {
@@ -51,25 +52,12 @@ class _ProductCardState extends State<ProductCard> {
 
   @override
   Widget build(BuildContext context) {
-    final distanceKm =
-        Geolocator.distanceBetween(
-          _userLat,
-          _userLong,
-          widget.product.latitude,
-          widget.product.longitude,
-        ) /
-        1000;
-    String distanceText() {
-      if (_userLat == 0 || _userLong == 0) {
-        return "Unknown distance";
-      }
-
-      if (distanceKm < 1) {
-        return "${(distanceKm * 1000).round()} m away";
-      }
-
-      return "${distanceKm.toStringAsFixed(1)} km away";
-    }
+    final distanceVal = DistanceUtils.formatDistance(
+      startLatitude: _userLat,
+      startLongitude: _userLong,
+      endLatitude: widget.product.latitude,
+      endLongitude: widget.product.longitude,
+    );
 
     final imageBytes = widget.product.images.isNotEmpty
         ? widget.product.images.first
@@ -168,7 +156,6 @@ class _ProductCardState extends State<ProductCard> {
                         color: AppTheme.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 6),
                     Text(
                       FormatUtils.formatPrice(widget.product.price),
                       style: TextStyle(
@@ -178,7 +165,6 @@ class _ProductCardState extends State<ProductCard> {
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const Spacer(),
                     Row(
                       children: [
                         Icon(
@@ -187,32 +173,20 @@ class _ProductCardState extends State<ProductCard> {
                           color: AppTheme.textSecondary,
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          widget.product.locationName,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                        const Spacer(),
-                        Icon(
-                          Icons.star_rounded,
-                          size: 12,
-                          color: AppTheme.warning,
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          "4.8",
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppTheme.textPrimary,
-                            fontWeight: FontWeight.w600,
+                        Expanded(
+                          child: Text(
+                            widget.product.locationName,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textSecondary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
                     Text(
-                      distanceText(),
+                      distanceVal,
                       style: TextStyle(
                         fontSize: 12,
                         color: AppTheme.textSecondary,

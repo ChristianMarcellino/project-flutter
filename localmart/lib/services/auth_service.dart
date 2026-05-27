@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show ChangeNotifier, debugPrint, kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:localmart/constants.dart';
 
 final AuthService authService = AuthService();
 
@@ -26,13 +26,9 @@ class AuthService extends ChangeNotifier {
   Future<void> _initializeGoogleSignIn() async {
     try {
       await _googleSignIn.initialize(clientId: dotenv.env["CLIENT_ID"]);
-
       _isGoogleSignInInitialized = true;
-
-      print("Google Sign In initialized successfully");
-      print("supportsAuthenticate: ${_googleSignIn.supportsAuthenticate()}");
     } catch (e) {
-      print("Failed to initialize Google Sign-In: $e");
+      debugPrint("Failed to initialize Google Sign-In: $e");
     }
   }
 
@@ -53,10 +49,8 @@ class AuthService extends ChangeNotifier {
     try {
       if (kIsWeb) {
         GoogleAuthProvider googleProvider = GoogleAuthProvider();
-
         googleProvider.addScope('email');
         googleProvider.addScope('profile');
-
         return await firebaseAuth.signInWithPopup(googleProvider);
       }
 
@@ -82,8 +76,6 @@ class AuthService extends ChangeNotifier {
         credential,
       );
 
-      if (userCredential.additionalUserInfo?.isNewUser == true) {}
-
       return userCredential;
     } finally {
       _isSigningIn = false;
@@ -102,7 +94,7 @@ class AuthService extends ChangeNotifier {
         return result as GoogleSignInAccount;
       }
     } catch (e) {
-      print("Silent Sign In Error $e");
+      debugPrint("Silent Sign In Error $e");
       return null;
     }
   }
@@ -112,7 +104,6 @@ class AuthService extends ChangeNotifier {
       if (!kIsWeb) {
         await _googleSignIn.signOut();
       }
-
       await firebaseAuth.signOut();
     } catch (e) {
       throw Exception("Firebase sign-out failed: $e");
@@ -136,7 +127,7 @@ class AuthService extends ChangeNotifier {
       if (user != null) {
         await user.sendEmailVerification();
 
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        await FirebaseFirestore.instance.collection(AppConstants.usersCollection).doc(user.uid).set({
           'uid': user.uid,
           'email': email,
           'username': username,

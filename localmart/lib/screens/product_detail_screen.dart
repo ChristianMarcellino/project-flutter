@@ -277,7 +277,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         width: 50,
                         height: 50,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) {
+                        errorBuilder: (_, _, _) {
                           return Container(
                             width: 50,
                             height: 50,
@@ -366,7 +366,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: docs.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 16),
+          separatorBuilder: (_, _) => const SizedBox(height: 16),
           itemBuilder: (context, index) {
             final commentDoc = docs[index];
 

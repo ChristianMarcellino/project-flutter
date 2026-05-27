@@ -5,16 +5,16 @@ import 'package:go_router/go_router.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:localmart/constants.dart';
 import 'package:localmart/models/product.dart';
 import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/services/product_service.dart';
 import 'package:localmart/services/user_service.dart';
+import 'package:localmart/services/location_service.dart';
 import 'package:localmart/theme/app_theme.dart';
 import 'package:localmart/widgets/grid_product_card.dart';
 import 'package:localmart/services/global_pref_service.dart';
 import 'package:localmart/main.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -34,18 +34,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<Map<String, dynamic>> _loadUserData() async {
     if (user == null) return {};
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user!.uid)
-        .get();
-    return doc.data() ?? {};
+    return await UserService.getUser(user!.uid) ?? {};
   }
 
   Future<void> _updateUsername(String newName) async {
     if (newName.trim().isEmpty) return;
     if (user == null) return;
 
-    await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({
+    await FirebaseFirestore.instance.collection(AppConstants.usersCollection).doc(user!.uid).update({
       'username': newName.trim(),
     });
 
@@ -54,49 +50,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Username updated")));
-    }
-  }
-
-  Future<void> reverseGeocode(double lat, double lng) async {
-    try {
-      if (user == null) return;
-
-      final url = Uri.parse(
-        'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=$lat&lon=$lng',
-      );
-
-      final response = await http.get(
-        url,
-        headers: {'User-Agent': 'localmart-app'},
-      );
-
-      final data = jsonDecode(response.body);
-
-      final address = data['address'] ?? {};
-
-      final city =
-          address['city'] ?? address['town'] ?? address['county'] ?? '';
-
-      final district = address['suburb'] ?? address['city_district'] ?? '';
-
-      final province = address['state'] ?? '';
-
-      final locationName = [
-        district,
-        city,
-      ].where((e) => e.isNotEmpty).join(', ');
-
-      await UserService.updateLocation(
-        user!.uid,
-        lat,
-        lng,
-        locationName: locationName,
-        city: city,
-        district: district,
-        province: province,
-      );
-    } catch (e) {
-      debugPrint(e.toString());
     }
   }
 
@@ -141,38 +94,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _updateLocation() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-
-      if (permission == LocationPermission.denied) {
-        return;
-      }
-    }
-
-    try {
-      Position position = await Geolocator.getCurrentPosition();
-
-      await reverseGeocode(position.latitude, position.longitude);
-
-      if (mounted) {
-        setState(() {});
-      }
-    } catch (e) {
-      debugPrint(e.toString());
-    }
+    if (user == null) return;
+    await LocationService.requestAndUpdateLocation(user!.uid);
+    await _loadUser();
   }
 
   Future<void> _pickAndUploadAvatar() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
 
     if (image == null) return;
+    if (!mounted) return;
 
     final cropped = await ImageCropper().cropImage(
       sourcePath: image.path,
       compressQuality: 70,
-
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: 'Crop Avatar',
@@ -180,7 +115,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           hideBottomControls: true,
           cropStyle: CropStyle.circle,
         ),
-
         WebUiSettings(context: context, presentStyle: WebPresentStyle.dialog),
       ],
     );
@@ -202,7 +136,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final uid = user!.uid;
 
-    await FirebaseFirestore.instance.collection('users').doc(uid).update({
+    await FirebaseFirestore.instance.collection(AppConstants.usersCollection).doc(uid).update({
       'avatar': base64Avatar,
     });
 
@@ -222,7 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _userLat = userLat;
       _userLong = userLong;
-      _avatar = data?['avatar'];
+      _avatar = data?['avatar'] ?? "";
     });
   }
 
@@ -357,7 +291,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             )
                           : null,
                     ),
-                    child: avatar == null
+                    child: _avatar == ""
                         ? Icon(
                             Icons.person,
                             size: 50,
@@ -454,7 +388,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Switch(
             value: isDark,
             onChanged: _toggleDarkMode,
-            activeColor: AppTheme.primary,
+            activeThumbColor: AppTheme.primary,
           ),
         ],
       ),

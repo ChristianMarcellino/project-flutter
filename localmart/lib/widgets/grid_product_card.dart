@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:localmart/models/product.dart';
 import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/services/product_service.dart';
 import 'package:localmart/theme/app_theme.dart';
 import 'package:localmart/utils/format_utils.dart';
+import 'package:localmart/utils/distance_utils.dart';
 
 class GridProductCard extends StatefulWidget {
   final Product product;
@@ -37,25 +37,12 @@ class _GridProductCardState extends State<GridProductCard> {
 
   @override
   Widget build(BuildContext context) {
-    final distanceKm =
-        Geolocator.distanceBetween(
-          widget.userLat,
-          widget.userLong,
-          widget.product.latitude,
-          widget.product.longitude,
-        ) /
-        1000;
-    String distanceText() {
-      if (widget.userLat == 0 || widget.userLong == 0) {
-        return "Unknown distance";
-      }
-
-      if (distanceKm < 1) {
-        return "${(distanceKm * 1000).round()} m away";
-      }
-
-      return "${distanceKm.toStringAsFixed(1)} km away";
-    }
+    final distanceVal = DistanceUtils.formatDistance(
+      startLatitude: widget.userLat,
+      startLongitude: widget.userLong,
+      endLatitude: widget.product.latitude,
+      endLongitude: widget.product.longitude,
+    );
 
     final imageBytes = widget.product.images.isNotEmpty
         ? widget.product.images.first
@@ -153,7 +140,6 @@ class _GridProductCardState extends State<GridProductCard> {
                         height: 1.2,
                       ),
                     ),
-                    const Spacer(),
                     Text(
                       FormatUtils.formatPrice(widget.product.price),
                       style: TextStyle(
@@ -163,7 +149,6 @@ class _GridProductCardState extends State<GridProductCard> {
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 4),
                     Row(
                       children: [
                         Icon(
@@ -185,7 +170,7 @@ class _GridProductCardState extends State<GridProductCard> {
                       ],
                     ),
                     Text(
-                      distanceText(),
+                      distanceVal,
                       style: TextStyle(
                         fontSize: 12,
                         color: AppTheme.textSecondary,
