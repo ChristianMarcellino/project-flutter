@@ -1,5 +1,5 @@
 name: localmart
-description: "A new Flutter project."
+description: "A local marketplace application built with Flutter."
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -17,6 +17,7 @@ dependencies:
     sdk: flutter
   flutter_dotenv: ^6.0.1
   flutter_image_compress: ^2.4.0
+  flutter_launcher_icons: ^0.14.4
   geolocator: ^14.0.2
   go_router: ^17.2.3
   http: ^1.6.0
@@ -34,4 +35,10 @@ dev_dependencies:
 flutter:
   assets:
     - .env
+    - assets/logo.png
   uses-material-design: true
+  
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo.png"
