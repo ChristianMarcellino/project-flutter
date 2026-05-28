@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:localmart/main.dart';
+import 'package:localmart/screens/forgot_password_screen.dart';
 import 'package:localmart/screens/login_screen.dart';
 import 'package:localmart/screens/product_detail_screen.dart';
 import 'package:localmart/screens/products_screen.dart';
@@ -22,9 +23,12 @@ final GoRouter appRouter = GoRouter(
     final isOnRegister = currentPath == '/register';
     final isOnVerifyEmail = currentPath == '/verify-email';
     final isOnLogin = currentPath == '/login';
+    final isOnForgot = currentPath == '/forgot-password';
 
     if (!isLoggedIn) {
-      if (isOnRegister || isOnVerifyEmail || isOnLogin) return null;
+      if (isOnRegister || isOnVerifyEmail || isOnLogin || isOnForgot) {
+        return null;
+      }
       return '/login';
     }
 
@@ -49,6 +53,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/register',
       builder: (context, state) => const RegisterScreen(),
+    ),
+    GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => const ForgotPasswordScreen(),
     ),
     GoRoute(
       path: '/verify-email',

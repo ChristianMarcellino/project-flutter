@@ -27,8 +27,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> login() async {
-    if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
       return;
     }
 
@@ -44,7 +47,10 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       if (mounted) context.go('/');
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -67,13 +73,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: AppTheme.primaryLight,
                     borderRadius: BorderRadius.circular(24),
                   ),
-                  child: Icon(Icons.storefront_rounded, size: 48, color: AppTheme.primary),
+                  child: Icon(Icons.store, size: 48, color: AppTheme.primary),
                 ),
               ),
               const SizedBox(height: 32),
               Center(child: Text('Welcome Back', style: AppTheme.h1)),
               const SizedBox(height: 8),
-              Center(child: Text('Login to access your local market', style: AppTheme.body)),
+              Center(
+                child: Text(
+                  'Login to access your local market',
+                  style: AppTheme.body,
+                ),
+              ),
               const SizedBox(height: 48),
               AuthInputField(
                 label: 'Email',
@@ -89,17 +100,28 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _passwordController,
                 isPassword: true,
                 obscurePassword: _obscurePassword,
-                onTogglePassword: () => setState(() => _obscurePassword = !_obscurePassword),
+                onTogglePassword: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {},
-                  child: Text('Forgot Password?', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
+                  onPressed: () => context.go('/forgot-password'),
+                  child: Text(
+                    'Forgot Password?',
+                    style: TextStyle(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
-              CustomButton(onPressed: login, text: 'Sign In', isLoading: _isLoading),
+              CustomButton(
+                onPressed: login,
+                text: 'Sign In',
+                isLoading: _isLoading,
+              ),
               const SizedBox(height: 32),
               Center(
                 child: TextButton(
@@ -111,7 +133,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         TextSpan(
                           text: 'Register',
-                          style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),

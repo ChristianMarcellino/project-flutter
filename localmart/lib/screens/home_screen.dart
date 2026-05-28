@@ -275,12 +275,8 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.storefront_rounded,
-            size: 64,
-            color: AppTheme.textSecondary,
-          ),
-          const SizedBox(height: 16),
+          Icon(Icons.store, size: 64, color: AppTheme.textSecondary),
+          const SizedBox(height: 16), 
           Text("No products found", style: AppTheme.h2),
           Text("Be the first to list something!", style: AppTheme.body),
         ],
