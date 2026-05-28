@@ -5,11 +5,13 @@ import 'package:localmart/screens/product_detail_screen.dart';
 import 'package:localmart/screens/products_screen.dart';
 import 'package:localmart/screens/register_screen.dart';
 import 'package:localmart/screens/search_screen.dart';
+import 'package:localmart/screens/splash_gate_screen.dart';
+import 'package:localmart/screens/splash_screen.dart';
 import 'package:localmart/screens/verify_email_screen.dart';
 import 'package:localmart/services/auth_service.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/login',
+  initialLocation: '/splash',
   refreshListenable: authService,
   redirect: (context, state) {
     final user = authService.currentUser;
@@ -39,13 +41,24 @@ final GoRouter appRouter = GoRouter(
   },
   routes: [
     GoRoute(path: '/', builder: (context, state) => const MainScreen()),
-    GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
+    GoRoute(
+      path: '/gate',
+      builder: (context, state) => const SplashGateScreen(),
+    ),
+    GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) => const RegisterScreen(),
+    ),
     GoRoute(
       path: '/verify-email',
       builder: (context, state) => const VerifyEmailScreen(),
     ),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-    GoRoute(path: '/search', builder: (context, state) => const SearchScreen(showBack: true)),
+    GoRoute(
+      path: '/search',
+      builder: (context, state) => const SearchScreen(showBack: true),
+    ),
     GoRoute(
       path: '/products',
       builder: (context, state) {

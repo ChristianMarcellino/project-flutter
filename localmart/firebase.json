@@ -1,1 +1,51 @@
-{"firestore":{"database":"(default)","location":"asia-southeast1","rules":"firestore.rules","indexes":"firestore.indexes.json"},"auth":{"providers":{"emailPassword":true,"googleSignIn":{"oAuthBrandDisplayName":"Localmart","supportEmail":"support@undefined.firebaseapp.com"}}},"flutter":{"platforms":{"android":{"default":{"projectId":"localmart123123","appId":"1:433497298997:android:156fd99395644d25f1b97c","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"localmart123123","configurations":{"android":"1:433497298997:android:156fd99395644d25f1b97c","web":"1:433497298997:web:77b2b078b1fbb8b9f1b97c"}}}}}}
+{
+  "firestore": {
+    "database": "(default)",
+    "location": "asia-southeast1",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Localmart",
+        "supportEmail": "support@undefined.firebaseapp.com"
+      }
+    }
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "localmart123123",
+          "appId": "1:433497298997:android:156fd99395644d25f1b97c",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "localmart123123",
+          "configurations": {
+            "android": "1:433497298997:android:156fd99395644d25f1b97c",
+            "web": "1:433497298997:web:77b2b078b1fbb8b9f1b97c"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

@@ -41,9 +41,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (newName.trim().isEmpty) return;
     if (user == null) return;
 
-    await FirebaseFirestore.instance.collection(AppConstants.usersCollection).doc(user!.uid).update({
-      'username': newName.trim(),
-    });
+    await FirebaseFirestore.instance
+        .collection(AppConstants.usersCollection)
+        .doc(user!.uid)
+        .update({'username': newName.trim()});
 
     if (mounted) {
       setState(() {});
@@ -86,6 +87,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildAvatarWidget(double size) {
+    try {
+      if (_avatar.isEmpty) {
+        return Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppTheme.border,
+          ),
+          child: Icon(
+            Icons.person,
+            size: size * 0.5,
+            color: AppTheme.textSecondary,
+          ),
+        );
+      }
+
+      return ClipOval(
+        child: Image.memory(
+          base64Decode(_avatar),
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) {
+            return Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.border,
+              ),
+              child: Icon(
+                Icons.person,
+                size: size * 0.5,
+                color: AppTheme.textSecondary,
+              ),
+            );
+          },
+        ),
+      );
+    } catch (e) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppTheme.border,
+        ),
+        child: Icon(
+          Icons.person,
+          size: size * 0.5,
+          color: AppTheme.textSecondary,
+        ),
+      );
+    }
   }
 
   void _toggleDarkMode(bool value) async {
@@ -136,9 +195,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final uid = user!.uid;
 
-    await FirebaseFirestore.instance.collection(AppConstants.usersCollection).doc(uid).update({
-      'avatar': base64Avatar,
-    });
+    await FirebaseFirestore.instance
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .update({'avatar': base64Avatar});
 
     if (mounted) {
       setState(() {
@@ -149,14 +209,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadUser() async {
+    if (user == null) return;
+
     final data = await UserService.getUser(user!.uid);
+
+    if (!mounted) return;
+
     final userLat = (data?["latitude"] ?? 0).toDouble();
     final userLong = (data?["longitude"] ?? 0).toDouble();
 
     setState(() {
       _userLat = userLat;
       _userLong = userLong;
-      _avatar = data?['avatar'] ?? "";
+      _avatar = data?['avatar']?.toString() ?? "";
     });
   }
 
@@ -284,24 +349,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: AppTheme.primary, width: 3),
-                      image: _avatar != ""
-                          ? DecorationImage(
-                              image: MemoryImage(base64Decode(_avatar)),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
                     ),
-                    child: _avatar == ""
-                        ? Icon(
-                            Icons.person,
-                            size: 50,
-                            color: AppTheme.textSecondary,
-                          )
-                        : null,
+                    child: _buildAvatarWidget(100),
                   ),
                 ),
                 if (_uploadingAvatar)
-                  const Positioned.fill(child: CircularProgressIndicator()),
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black26,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                  ),
                 Positioned(
                   bottom: 0,
                   right: 0,

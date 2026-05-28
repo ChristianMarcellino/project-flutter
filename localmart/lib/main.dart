@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:localmart/firebase_options.dart';
 import 'package:localmart/routers/router.dart';
 import 'package:localmart/screens/add_product_screen.dart';
@@ -10,6 +11,7 @@ import 'package:localmart/screens/saved_screen.dart';
 import 'package:localmart/screens/search_screen.dart';
 import 'package:localmart/services/global_pref_service.dart';
 import 'package:localmart/theme/app_theme.dart';
+import 'package:app_links/app_links.dart';
 
 final ValueNotifier<bool> darkModeNotifier = ValueNotifier(false);
 
@@ -22,8 +24,38 @@ void main() async {
   runApp(const MainApp());
 }
 
-class MainApp extends StatelessWidget {
+class MainApp extends StatefulWidget {
   const MainApp({super.key});
+
+  @override
+  State<MainApp> createState() => _MainAppState();
+}
+
+class _MainAppState extends State<MainApp> {
+  final AppLinks _appLinks = AppLinks();
+  void _initDeepLinks() {
+    _appLinks.uriLinkStream.listen((Uri uri) {
+      if (!mounted) return;
+
+      print("Incoming URI: $uri");
+
+      final segments = uri.pathSegments;
+
+      if (segments.isNotEmpty && segments[0] == 'product') {
+        final id = segments.length > 1 ? segments[1] : null;
+
+        if (id != null) {
+          context.go('/product/$id');
+        }
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _initDeepLinks();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,18 +102,34 @@ class _MainScreenState extends State<MainScreen> {
                   offset: const Offset(0, -2),
                 ),
               ],
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
             ),
             child: SafeArea(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildNavItem(0, isDark ? Icons.home : Icons.home_outlined, "Home", isDark),
+                  _buildNavItem(
+                    0,
+                    isDark ? Icons.home : Icons.home_outlined,
+                    "Home",
+                    isDark,
+                  ),
                   _buildNavItem(1, Icons.search, "Search", isDark),
                   _buildAddButton(),
-                  _buildNavItem(2, _currentIndex == 2 ? Icons.favorite : Icons.favorite_border, "Saved", isDark),
-                  _buildNavItem(3, _currentIndex == 3 ? Icons.person : Icons.person_outline, "Profile", isDark),
+                  _buildNavItem(
+                    2,
+                    _currentIndex == 2 ? Icons.favorite : Icons.favorite_border,
+                    "Saved",
+                    isDark,
+                  ),
+                  _buildNavItem(
+                    3,
+                    _currentIndex == 3 ? Icons.person : Icons.person_outline,
+                    "Profile",
+                    isDark,
+                  ),
                 ],
               ),
             ),
@@ -102,10 +150,7 @@ class _MainScreenState extends State<MainScreen> {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            color: isSelected ? activeColor : inactiveColor,
-          ),
+          Icon(icon, color: isSelected ? activeColor : inactiveColor),
           const SizedBox(height: 4),
           Text(
             label,

@@ -6,6 +6,7 @@ import 'package:localmart/services/location_service.dart';
 import 'package:localmart/widgets/auth_input_field.dart';
 import 'package:localmart/widgets/custom_button.dart';
 import 'package:localmart/theme/app_theme.dart';
+import 'package:geolocator/geolocator.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -37,6 +38,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final gpsEnabled = await LocationService.isGpsEnabled();
+
+      if (!gpsEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Please enable GPS to register")),
+          );
+        }
+
+        await Geolocator.openLocationSettings();
+        return;
+      }
+
+      final locationSuccess =
+          await LocationService.requestAndUpdateLocationTemp();
+
+      if (!locationSuccess) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Location permission is required to register"),
+            ),
+          );
+        }
+        return;
+      }
+
       final cred = await authService.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -44,17 +72,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         phoneNumber: _phoneNumberController.text.trim(),
       );
 
-      final user = cred.user;
-      if (user != null) {
-        await LocationService.requestAndUpdateLocation(user.uid);
-      }
+      if (cred.user == null) return;
+
+      await LocationService.requestAndUpdateLocation(cred.user!.uid);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Verification email sent! Check your inbox."),
-          ),
-        );
         context.go('/verify-email');
       }
     } catch (e) {
@@ -96,10 +118,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Center(child: Text('Create Account', style: AppTheme.h1)),
               const SizedBox(height: 8),
               Center(
-                child: Text(
-                  'Join our community today',
-                  style: AppTheme.body,
-                ),
+                child: Text('Join our community today', style: AppTheme.body),
               ),
               const SizedBox(height: 48),
               AuthInputField(

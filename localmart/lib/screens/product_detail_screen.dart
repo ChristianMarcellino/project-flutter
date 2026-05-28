@@ -11,6 +11,7 @@ import 'package:localmart/services/user_service.dart';
 import 'package:localmart/theme/app_theme.dart';
 import 'package:localmart/utils/format_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -36,25 +37,41 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _openWhatsApp(String phone, String title) async {
-  final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
 
-  final message = Uri.encodeComponent(
-    "Hi, I'm interested in your item: $title on LocalMart",
-  );
-
-  final Uri uri = Uri.parse(
-    "https://wa.me/$cleanPhone?text=$message",
-  );
-
-  try {
-    await launchUrl(
-      uri,
-      mode: LaunchMode.externalApplication,
+    final message = Uri.encodeComponent(
+      "Hi, I'm interested in your item: $title on LocalMart",
     );
-  } catch (e) {
-    debugPrint("Could not launch WhatsApp: $e");
+
+    final Uri uri = Uri.parse("https://wa.me/$cleanPhone?text=$message");
+
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint("Could not launch WhatsApp: $e");
+    }
   }
-}
+
+  Future<void> _shareProduct(Product product) async {
+    final link = "https://localmart123123.web.app/product/${product.id}";
+
+    final text =
+        '''
+*${product.title}*
+
+*${FormatUtils.formatPrice(product.price)}*
+${product.locationName}
+
+${product.description}
+
+Check it out on LocalMart! 
+$link
+
+LocalMart - Shop Local, Save More!_
+''';
+
+    await SharePlus.instance.share(ShareParams(text: text));
+  }
 
   @override
   void dispose() {
@@ -183,10 +200,31 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             size: 18,
           ),
         ),
-        onPressed: () => context.pop(),
+        onPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/');
+          }
+        },
       ),
 
       actions: [
+        IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: Colors.black26,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.share_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          onPressed: () => _shareProduct(product),
+        ),
         IconButton(
           icon: Container(
             padding: const EdgeInsets.all(8),

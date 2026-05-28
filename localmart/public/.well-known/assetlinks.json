@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.example.localmart",
+      "sha256_cert_fingerprints": [
+        "46:EF:53:19:59:C9:DC:00:AD:F4:25:9A:F4:F8:C4:1F:D4:22:56:88:9D:E9:BE:F9:58:AD:A7:59:C3:37:96:06"
+      ]
+    }
+  }
+]
