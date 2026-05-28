@@ -56,7 +56,6 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // 🔥 Replace with your logo
               Container(
                 width: 90,
                 height: 90,
