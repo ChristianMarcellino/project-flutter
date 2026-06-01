@@ -27,14 +27,14 @@ Future<void> requestNotificationPermission() async {
   NotificationSettings settings = await messaging.requestPermission(
     alert: true,
     badge: true,
-    sound: true
+    sound: true,
   );
 
-  if(settings.authorizationStatus == AuthorizationStatus.authorized){
+  if (settings.authorizationStatus == AuthorizationStatus.authorized) {
     print("Permission Granted");
-  }else if (settings.authorizationStatus == AuthorizationStatus.provisional){
+  } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
     print("Izin notifikasi sementara diberikan");
-  }else {
+  } else {
     print("Izin notifikasi ditolak");
   }
 }
@@ -46,23 +46,28 @@ Future<void> showBasicNotification(String? title, String? body) async {
     channelDescription: "Notifikasi masuk dari FCM",
     importance: Importance.high,
     priority: Priority.high,
-    showWhen: true
+    showWhen: true,
   );
   final platform = NotificationDetails(android: android);
-  await flutterLocalNotificationsPlugin.show(id:DateTime.now().millisecondsSinceEpoch.remainder(100000),title: title,body: body, notificationDetails: platform);
+  await flutterLocalNotificationsPlugin.show(
+    id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+    title: title,
+    body: body,
+    notificationDetails: platform,
+  );
 }
 
 Future<String?> _networkImageToBase64(String url) async {
-  try{
+  try {
     final response = await http.get(Uri.parse(url));
-    if(response.statusCode == 200){
+    if (response.statusCode == 200) {
       return base64Encode(response.bodyBytes);
     }
-  }catch(_){}
+  } catch (_) {}
   return null;
 }
 
-Future<void> showNotificationFromData(Map<String,dynamic> data)async{
+Future<void> showNotificationFromData(Map<String, dynamic> data) async {
   final title = data["title"] ?? "Pesan Baru ";
   final body = data["body"] ?? '';
   final sender = data["senderName"] ?? 'Pengirim tidak diketahui';
@@ -70,48 +75,57 @@ Future<void> showNotificationFromData(Map<String,dynamic> data)async{
   final photoUrl = data["senderPhotoUrl"] ?? '';
 
   ByteArrayAndroidBitmap? largeIconBitmap;
-  if(photoUrl.isNotEmpty){
+  if (photoUrl.isNotEmpty) {
     final base64 = await _networkImageToBase64(photoUrl);
-    if(base64 != null ){
+    if (base64 != null) {
       largeIconBitmap = ByteArrayAndroidBitmap.fromBase64String(base64);
     }
   }
 
-  final styleInfo = largeIconBitmap != null 
-                    ? BigPictureStyleInformation(
-                      largeIconBitmap,
-                      contentTitle: title,
-                      summaryText: '$body\n\nDari : $sender - $time',
-                      largeIcon: largeIconBitmap,
-                      hideExpandedLargeIcon: true
-                    ):
-                    BigTextStyleInformation(
-                      '$body\n\nDari : $sender - $time',
-                      contentTitle: title,
-                    );
+  final styleInfo = largeIconBitmap != null
+      ? BigPictureStyleInformation(
+          largeIconBitmap,
+          contentTitle: title,
+          summaryText: '$body\n\nDari : $sender - $time',
+          largeIcon: largeIconBitmap,
+          hideExpandedLargeIcon: true,
+        )
+      : BigTextStyleInformation(
+          '$body\n\nDari : $sender - $time',
+          contentTitle: title,
+        );
   final androidDetails = AndroidNotificationDetails(
-      'default_channel',
-      'Notifikasi Default',
-      channelDescription: "Notifikasi dengan detail tambahan",
-      styleInformation: styleInfo,
-      largeIcon: largeIconBitmap,
-      importance: Importance.max,
-      priority: Priority.max,
-      showWhen: true
-    );
-    final platform = NotificationDetails(android:androidDetails);
-    await flutterLocalNotificationsPlugin.show(id: DateTime.now().millisecondsSinceEpoch.remainder(100000), title: title, body: body, notificationDetails: platform);
-} 
+    'default_channel',
+    'Notifikasi Default',
+    channelDescription: "Notifikasi dengan detail tambahan",
+    styleInformation: styleInfo,
+    largeIcon: largeIconBitmap,
+    importance: Importance.max,
+    priority: Priority.max,
+    showWhen: true,
+  );
+  final platform = NotificationDetails(android: androidDetails);
+  await flutterLocalNotificationsPlugin.show(
+    id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+    title: title,
+    body: body,
+    notificationDetails: platform,
+  );
+}
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   debugPrint('Handling background message: ${message.messageId}');
-  if(message.data.isNotEmpty){
+  if (message.data.isNotEmpty) {
     await showNotificationFromData(message.data);
-  }else{
-    await showBasicNotification(message.notification!.title, message.notification!.body);
+  } else {
+    await showBasicNotification(
+      message.notification!.title,
+      message.notification!.body,
+    );
   }
 }
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
@@ -121,38 +135,40 @@ void main() async {
   await requestNotificationPermission();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const DarwinInitializationSettings iosInit = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-  final InitializationSettings settings = InitializationSettings(android: androidInit, iOS: iosInit);
-    await flutterLocalNotificationsPlugin.initialize(settings: settings);
+  const AndroidInitializationSettings androidInit =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+  const DarwinInitializationSettings iosInit = DarwinInitializationSettings(
+    requestAlertPermission: true,
+    requestBadgePermission: true,
+    requestSoundPermission: true,
+  );
+  final InitializationSettings settings = InitializationSettings(
+    android: androidInit,
+    iOS: iosInit,
+  );
+  await flutterLocalNotificationsPlugin.initialize(settings: settings);
 
-    const AndroidNotificationChannel defaultChannel =
-        AndroidNotificationChannel(
-          'default_channel',
-          'Notifikasi Default',
-          description: 'Notifikasi masuk dari FCM',
-          importance: Importance.high,
-        );
+  const AndroidNotificationChannel defaultChannel = AndroidNotificationChannel(
+    'default_channel',
+    'Notifikasi Default',
+    description: 'Notifikasi masuk dari FCM',
+    importance: Importance.high,
+  );
 
-    const AndroidNotificationChannel detailedChannel =
-        AndroidNotificationChannel(
-          'detailed_channel',
-          'Notifikasi Detail',
-          description: 'Notifikasi dengan detail tambahan',
-          importance: Importance.max,
-        );
+  const AndroidNotificationChannel detailedChannel = AndroidNotificationChannel(
+    'detailed_channel',
+    'Notifikasi Detail',
+    description: 'Notifikasi dengan detail tambahan',
+    importance: Importance.max,
+  );
 
-    final androidPlugin = flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
+  final androidPlugin = flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >();
 
-    await androidPlugin?.createNotificationChannel(defaultChannel);
-    await androidPlugin?.createNotificationChannel(detailedChannel);
+  await androidPlugin?.createNotificationChannel(defaultChannel);
+  await androidPlugin?.createNotificationChannel(detailedChannel);
   await flutterLocalNotificationsPlugin.initialize(settings: settings);
   runApp(const MainApp());
 }
@@ -183,9 +199,10 @@ class _MainAppState extends State<MainApp> {
       }
     });
   }
+
   String status = "Memulai. . .";
-  String topic = "berita-fasum";
-  
+  String topic = "tes-notif";
+
   void setupFirebaseMessaging() async {
     final messaging = FirebaseMessaging.instance;
     try {
@@ -257,6 +274,7 @@ class _MainAppState extends State<MainApp> {
   void initState() {
     super.initState();
     _initDeepLinks();
+    setupFirebaseMessaging();
   }
 
   @override
