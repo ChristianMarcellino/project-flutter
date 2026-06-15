@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/services/location_service.dart';
 import 'package:localmart/widgets/auth_input_field.dart';
@@ -33,36 +34,71 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void register() async {
+  Future<void> register() async {
     if (_isLoading) return;
+
     setState(() => _isLoading = true);
 
     try {
-      final gpsEnabled = await LocationService.isGpsEnabled();
+      final access = await LocationService.ensureLocationAccess();
 
-      if (!gpsEnabled) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Please enable GPS to register")),
-          );
-        }
+      switch (access) {
+        case LocationAccessResult.gpsDisabled:
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'GPS is disabled. Please enable location services.',
+                ),
+                action: SnackBarAction(
+                  label: 'Settings',
+                  onPressed: () async {
+                    await Geolocator.openLocationSettings();
+                  },
+                ),
+              ),
+            );
+          }
+          return;
 
-        await Geolocator.openLocationSettings();
-        return;
-      }
+        case LocationAccessResult.denied:
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Location permission is required to register.',
+                ),
+                action: SnackBarAction(
+                  label: 'Settings',
+                  onPressed: () async {
+                    await Geolocator.openAppSettings();
+                  },
+                ),
+              ),
+            );
+          }
+          return;
 
-      final locationSuccess =
-          await LocationService.requestAndUpdateLocationTemp();
+        case LocationAccessResult.deniedForever:
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Location permission is permanently denied.',
+                ),
+                action: SnackBarAction(
+                  label: 'Settings',
+                  onPressed: () async {
+                    await Geolocator.openAppSettings();
+                  },
+                ),
+              ),
+            );
+          }
+          return;
 
-      if (!locationSuccess) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Location permission is required to register"),
-            ),
-          );
-        }
-        return;
+        case LocationAccessResult.success:
+          break;
       }
 
       final cred = await authService.signUp(
@@ -72,13 +108,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         phoneNumber: _phoneNumberController.text.trim(),
       );
 
-      if (cred.user == null) return;
-
-      await LocationService.requestAndUpdateLocation(cred.user!.uid);
+      if (cred.user == null) {
+        throw Exception('Failed to create account');
+      }
 
       if (mounted) {
         context.go('/verify-email');
       }
+
+      LocationService.updateUserLocation(cred.user!.uid);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -86,7 +124,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -146,7 +186,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               AuthInputField(
                 label: 'Phone Number',
-                hint: '8123456789',
+                hint: '08123456789',
                 icon: Icons.phone_android_rounded,
                 controller: _phoneNumberController,
                 keyboardType: TextInputType.phone,
@@ -165,11 +205,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: Text.rich(
                     TextSpan(
                       text: "Already have an account? ",
-                      style: TextStyle(color: AppTheme.textSecondary),
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.textSecondary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                       children: [
                         TextSpan(
                           text: 'Sign In',
-                          style: TextStyle(
+                          style: GoogleFonts.plusJakartaSans(
                             color: AppTheme.primary,
                             fontWeight: FontWeight.bold,
                           ),

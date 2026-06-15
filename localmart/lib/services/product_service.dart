@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:localmart/constants.dart';
 import 'package:localmart/models/product.dart';
 import 'package:localmart/services/auth_service.dart';
+import 'package:localmart/services/notif_service.dart';
 
 class ProductService {
   ProductService._privateConstructor();
@@ -82,44 +83,82 @@ class ProductService {
     });
   }
 
-  Future<void> updateProduct(
-    String productId,
-    Map<String, dynamic> updatedData,
-  ) async {
-    updatedData['updatedAt'] = FieldValue.serverTimestamp();
-    await productsRef.doc(productId).update(updatedData);
-  }
+  Future<void> updateProductStatus(Product product, String status) async {
+    final currentUser = authService.currentUser;
 
-  Future<void> markProductSold(String productId) async {
-    await productsRef.doc(productId).update({
-      'status': 'sold',
+    if (currentUser == null) {
+      throw Exception('User not logged in');
+    }
+
+    if (product.sellerId != currentUser.uid) {
+      throw Exception('Only seller can update status');
+    }
+
+    await productsRef.doc(product.id).update({
+      'status': status,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
-  Future<void> toggleLike(String productId, String userId) async {
-    final docRef = productsRef.doc(productId);
+  Future<void> toggleLike({
+    required Product product,
+    required String userId,
+    required String username,
+    String? profilePicture,
+  }) async {
+    final currentUser = authService.currentUser;
+    if (currentUser == null) return;
+    final docRef = productsRef.doc(product.id);
+
+    bool shouldNotify = false;
+
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final snapshot = await transaction.get(docRef);
+
       if (!snapshot.exists) return;
 
       final data = snapshot.data() as Map<String, dynamic>;
+
       final likedBy = List<String>.from(data['likedBy'] ?? []);
       final alreadyLiked = likedBy.contains(userId);
 
       if (alreadyLiked) {
         likedBy.remove(userId);
+
         transaction.update(docRef, {
           'likedBy': likedBy,
           'likesCount': FieldValue.increment(-1),
         });
       } else {
         likedBy.add(userId);
+
+        shouldNotify = true;
+
         transaction.update(docRef, {
           'likedBy': likedBy,
           'likesCount': FieldValue.increment(1),
         });
       }
     });
+    if (product.sellerId == currentUser.uid) return;
+
+    if (!shouldNotify) return;
+
+    if (product.sellerId == userId) return;
+
+    final sellerDoc = await FirebaseFirestore.instance
+        .collection(AppConstants.usersCollection)
+        .doc(product.sellerId)
+        .get();
+
+    final sellerData = sellerDoc.data() ?? {};
+
+    await NotifService().sendLikeNotification(
+      product: product,
+      sellerId: product.sellerId,
+      username: username,
+      profilePicture: profilePicture,
+      sellerFcmToken: sellerData['fcmToken'] ?? '',
+    );
   }
 }

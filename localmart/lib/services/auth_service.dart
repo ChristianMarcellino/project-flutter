@@ -26,10 +26,7 @@ class AuthService extends ChangeNotifier {
   }) async {
     try {
       UserCredential userCredential = await firebaseAuth
-          .createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+          .createUserWithEmailAndPassword(email: email, password: password);
 
       User? user = userCredential.user;
 
@@ -40,13 +37,15 @@ class AuthService extends ChangeNotifier {
             .collection(AppConstants.usersCollection)
             .doc(user.uid)
             .set({
-          'uid': user.uid,
-          'email': email,
-          'username': username,
-          'phoneNumber': phoneNumber,
-          'createdAt': FieldValue.serverTimestamp(),
-          'provider': 'email',
-        });
+              'uid': user.uid,
+              'email': email,
+              'username': username,
+              'phoneNumber': phoneNumber,
+              'createdAt': FieldValue.serverTimestamp(),
+              'provider': 'email',
+              'bio': '',
+              'avatar': '',
+            });
       }
 
       return userCredential;

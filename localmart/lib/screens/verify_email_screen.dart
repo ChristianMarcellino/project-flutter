@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/theme/app_theme.dart';
 
@@ -83,12 +84,19 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                     onPressed: _isChecking ? null : checkStatus,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: const StadiumBorder(),
                       elevation: 0,
                     ),
                     child: _isChecking 
-                      ? const CircularProgressIndicator(color: Colors.white) 
-                      : const Text('I Have Verified', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : Text(
+                          'I Have Verified',
+                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16),
+                        ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -96,13 +104,19 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                   onPressed: (_isSending || _cooldownSeconds > 0) ? null : resendEmail,
                   child: Text(
                     _cooldownSeconds > 0 ? 'Resend in ${_cooldownSeconds}s' : 'Resend Email',
-                    style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.plusJakartaSans(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                 ),
                 const SizedBox(height: 40),
                 TextButton(
-                  onPressed: () => context.go('/register'),
-                  child: Text('Back to Register', style: TextStyle(color: AppTheme.textSecondary)),
+                  onPressed: () { 
+                    authService.signOut();
+                    context.go('/register'); 
+                  },
+                  child: Text(
+                    'Back to Register',
+                    style: GoogleFonts.plusJakartaSans(color: AppTheme.textSecondary, fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
                 ),
               ],
             ),

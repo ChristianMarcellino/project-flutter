@@ -9,8 +9,9 @@ import 'package:localmart/widgets/grid_product_card.dart';
 
 class ProductsScreen extends StatefulWidget {
   final String section;
+  final String? sellerId;
 
-  const ProductsScreen({super.key, required this.section});
+  const ProductsScreen({super.key, required this.section, this.sellerId});
 
   @override
   State<ProductsScreen> createState() => _ProductsScreenState();
@@ -44,10 +45,15 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   String get _title {
     switch (widget.section) {
+      case 'seller':
+        return 'Seller Listings';
+
       case 'trending':
         return 'Trending Deals';
+
       case 'listing':
         return 'My Active Listings';
+
       default:
         return 'Nearby Products';
     }
@@ -55,24 +61,44 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   String get _subtitle {
     switch (widget.section) {
+      case 'seller':
+        return 'Products from this seller';
+
       case 'trending':
         return 'Most popular items';
+
       case 'listing':
         return 'Products you are selling';
+
       default:
         return 'Items close to you';
     }
   }
 
+  Stream<List<Product>> _getStream() {
+    if (widget.section == 'seller' && widget.sellerId != null) {
+      return ProductService().getProductsBySeller(widget.sellerId!);
+    }
+
+    return ProductService().getAllProducts();
+  }
+
   List<Product> _filter(List<Product> products) {
+    if (widget.section == 'seller') {
+      return products.where((p) => p.sellerId == widget.sellerId).toList();
+    }
+
     if (widget.section == 'trending') {
       return [...products]
         ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
-    } else if (widget.section == 'listing') {
+    }
+
+    if (widget.section == 'listing') {
       return products
-          .where((element) => element.sellerId == authService.currentUser!.uid)
+          .where((p) => p.sellerId == authService.currentUser!.uid)
           .toList();
     }
+
     return products;
   }
 
@@ -90,27 +116,29 @@ class _ProductsScreenState extends State<ProductsScreen> {
             color: AppTheme.textPrimary,
             size: 18,
           ),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/');
+            }
+          },
         ),
         title: Column(
           children: [
             Text(
               _title,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.textPrimary,
-              ),
+              style: AppTheme.h2.copyWith(fontWeight: FontWeight.w800),
             ),
             Text(
               _subtitle,
-              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              style: AppTheme.caption.copyWith(color: AppTheme.textSecondary),
             ),
           ],
         ),
       ),
       body: StreamBuilder<List<Product>>(
-        stream: ProductService().getAllProducts(),
+        stream: _getStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
@@ -163,17 +191,18 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           backgroundColor: AppTheme.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
+                            horizontal: 40,
                             vertical: 16,
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
+                          shape: const StadiumBorder(),
                           elevation: 0,
                         ),
-                        child: const Text(
+                        child: Text(
                           "Load More",
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                          style: AppTheme.body.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),

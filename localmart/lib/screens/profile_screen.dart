@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -15,15 +16,19 @@ import 'package:localmart/theme/app_theme.dart';
 import 'package:localmart/widgets/grid_product_card.dart';
 import 'package:localmart/services/global_pref_service.dart';
 import 'package:localmart/main.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final String userId;
+  const ProfileScreen({super.key, required this.userId});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  bool get isOwner => authService.currentUser?.uid == widget.userId;
+  late Future<Map<String, dynamic>> _userFuture;
   final ImagePicker _picker = ImagePicker();
   bool _uploadingAvatar = false;
   String _avatar = "";
@@ -31,10 +36,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   double _userLat = 0.0;
   double _userLong = 0.0;
-
+  String _bio = "";
   Future<Map<String, dynamic>> _loadUserData() async {
     if (user == null) return {};
-    return await UserService.getUser(user!.uid) ?? {};
+    return await UserService.getUser(widget.userId) ?? {};
+  }
+
+  Future<void> _openWhatsApp(String phone) async {
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+
+    final message = Uri.encodeComponent(
+      "Hi, I'm interested in your store on LocalMart",
+    );
+
+    final Uri uri = Uri.parse("https://wa.me/$cleanPhone?text=$message");
+
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint("Could not launch WhatsApp: $e");
+    }
   }
 
   Future<void> _updateUsername(String newName) async {
@@ -43,33 +64,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     await FirebaseFirestore.instance
         .collection(AppConstants.usersCollection)
-        .doc(user!.uid)
+        .doc(widget.userId)
         .update({'username': newName.trim()});
 
     if (mounted) {
-      setState(() {});
+      setState(() {
+        _userFuture = _loadUserData();
+      });
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Username updated")));
     }
   }
 
-  void _showEditNameDialog(String currentName) {
-    final controller = TextEditingController(text: currentName);
+  Future<void> _updateBio(String newBio) async {
+    if (user == null) return;
+
+    await FirebaseFirestore.instance
+        .collection(AppConstants.usersCollection)
+        .doc(widget.userId)
+        .update({'bio': newBio.trim()});
+
+    if (mounted) {
+      setState(() {
+        _userFuture = _loadUserData();
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Bio updated")));
+    }
+  }
+
+  void _showEditBioDialog(String currentBio) {
+    final controller = TextEditingController(text: currentBio);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppTheme.surface,
-        title: Text("Edit Username", style: AppTheme.h2),
+        title: Text(
+          "Edit Bio",
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
+        ),
         content: TextField(
           controller: controller,
-          style: TextStyle(color: AppTheme.textPrimary),
-          decoration: InputDecoration(
-            hintText: "New username",
-            hintStyle: TextStyle(color: AppTheme.textSecondary),
-            enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: AppTheme.border),
-            ),
+          maxLines: 4,
+          maxLength: 150,
+          style: GoogleFonts.plusJakartaSans(color: AppTheme.textPrimary),
+          decoration: const InputDecoration(
+            hintText: "Tell something about yourself...",
           ),
         ),
         actions: [
@@ -79,10 +122,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () {
-              _updateUsername(controller.text);
+              _updateBio(controller.text);
+              setState(() => _bio = controller.text);
               Navigator.pop(context);
             },
             child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditNameDialog(String currentName) {
+    final controller = TextEditingController(text: currentName);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: Text(
+          "Edit Username",
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          style: GoogleFonts.plusJakartaSans(color: AppTheme.textPrimary),
+          decoration: InputDecoration(
+            hintText: "New username",
+            hintStyle: GoogleFonts.plusJakartaSans(
+              color: AppTheme.textSecondary,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: AppTheme.border),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              "Cancel",
+              style: GoogleFonts.plusJakartaSans(
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              _updateUsername(controller.text);
+              Navigator.pop(context);
+            },
+            child: Text(
+              "Save",
+              style: GoogleFonts.plusJakartaSans(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -97,7 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppTheme.border,
+            color: AppTheme.border.withValues(alpha: 0.5),
           ),
           child: Icon(
             Icons.person,
@@ -113,13 +213,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           width: size,
           height: size,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) {
+          errorBuilder: (_, _, _) {
             return Container(
               width: size,
               height: size,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.border,
+                color: AppTheme.border.withValues(alpha: 0.5),
               ),
               child: Icon(
                 Icons.person,
@@ -136,7 +236,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: AppTheme.border,
+          color: AppTheme.border.withValues(alpha: 0.5),
         ),
         child: Icon(
           Icons.person,
@@ -154,8 +254,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _updateLocation() async {
     if (user == null) return;
-    await LocationService.requestAndUpdateLocation(user!.uid);
-    await _loadUser();
+
+    final success = await LocationService.ensureAndUpdateLocation(
+      widget.userId,
+    );
+
+    if (success) {
+      await _loadUser();
+    }
   }
 
   Future<void> _pickAndUploadAvatar() async {
@@ -193,7 +299,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final base64Avatar = base64Encode(compressed);
 
-    final uid = user!.uid;
+    final uid = widget.userId;
 
     await FirebaseFirestore.instance
         .collection(AppConstants.usersCollection)
@@ -211,7 +317,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadUser() async {
     if (user == null) return;
 
-    final data = await UserService.getUser(user!.uid);
+    final data = await UserService.getUser(widget.userId);
 
     if (!mounted) return;
 
@@ -222,12 +328,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _userLat = userLat;
       _userLong = userLong;
       _avatar = data?['avatar']?.toString() ?? "";
+      _bio = data?['bio']?.toString() ?? "";
     });
   }
 
   @override
   void initState() {
     super.initState();
+    _userFuture = _loadUserData();
     _loadUser();
   }
 
@@ -237,9 +345,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       valueListenable: darkModeNotifier,
       builder: (context, isDark, _) {
         return Scaffold(
-          backgroundColor: AppTheme.background,
+          backgroundColor: AppTheme.scaffoldBackground,
           body: FutureBuilder<Map<String, dynamic>>(
-            future: _loadUserData(),
+            future: _userFuture,
             builder: (context, userSnap) {
               final userData = userSnap.data ?? {};
               final username = userData['username'] ?? 'User';
@@ -248,34 +356,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               return CustomScrollView(
                 slivers: [
-                  _buildHeader(username, _avatar, location),
+                  _buildHeader(username, _avatar, location, _bio),
+                  if (!isOwner)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            _openWhatsApp(userData["phoneNumber"]);
+                          },
+                          icon: const Icon(Icons.chat_bubble_outline),
+                          label: const Text("Contact Seller"),
+                        ),
+                      ),
+                    ),
                   SliverPadding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
                     sliver: SliverToBoxAdapter(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildSettingsSection(isDark),
+                          if (isOwner) _buildSettingsSection(isDark),
                           const SizedBox(height: 32),
                           _buildSectionHeader(
-                            "My Active Listings",
-                            userSnap.data?['uid'] ?? "",
+                            isOwner ? "My Active Listings" : "Seller Listings",
+                            widget.userId,
                           ),
                         ],
                       ),
                     ),
                   ),
                   StreamBuilder<List<Product>>(
-                    stream: ProductService().getProductsBySeller(
-                      authService.currentUser!.uid,
-                    ),
+                    stream: ProductService().getProductsBySeller(widget.userId),
                     builder: (context, snap) {
                       final products = snap.data ?? [];
                       if (products.isEmpty) {
                         return const SliverToBoxAdapter(child: SizedBox());
                       }
                       return SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         sliver: SliverGrid(
                           delegate: SliverChildBuilderDelegate(
                             (context, index) => GridProductCard(
@@ -290,34 +415,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 crossAxisCount: 2,
                                 mainAxisSpacing: 16,
                                 crossAxisSpacing: 16,
-                                mainAxisExtent: 240,
+                                mainAxisExtent: 245,
                               ),
                         ),
                       );
                     },
                   ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: OutlinedButton(
-                        onPressed: () => authService.signOut(),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.error,
-                          side: BorderSide(
-                            color: AppTheme.error.withValues(alpha: 0.3),
+                  if (isOwner)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 32, 20, 100),
+                        child: OutlinedButton(
+                          onPressed: () => authService.signOut(),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.error,
+                            side: BorderSide(
+                              color: AppTheme.error.withValues(alpha: 0.3),
+                              width: 1.5,
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: const StadiumBorder(),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                          child: Text(
+                            "Sign Out",
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                            ),
                           ),
-                        ),
-                        child: const Text(
-                          "Sign Out",
-                          style: TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
-                  ),
                 ],
               );
             },
@@ -327,7 +455,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildHeader(String name, String? avatar, String loc) {
+  Widget _buildHeader(String name, String? avatar, String loc, String bio) {
+    final isDark = AppTheme.isDark;
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 64, 20, 32),
@@ -336,13 +465,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
           borderRadius: const BorderRadius.vertical(
             bottom: Radius.circular(32),
           ),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
         child: Column(
           children: [
+            if (!isOwner)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: IconButton(
+                  onPressed: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/');
+                    }
+                  },
+                  icon: Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ),
             Stack(
               children: [
                 GestureDetector(
-                  onTap: _pickAndUploadAvatar,
+                  onTap: isOwner ? _pickAndUploadAvatar : null,
                   child: Container(
                     width: 100,
                     height: 100,
@@ -356,67 +511,111 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (_uploadingAvatar)
                   Positioned.fill(
                     child: Container(
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: Colors.black26,
                         shape: BoxShape.circle,
                       ),
                       child: const Center(child: CircularProgressIndicator()),
                     ),
                   ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.camera_alt,
-                      color: Colors.white,
-                      size: 16,
+                if (isOwner)
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppTheme.surface, width: 2),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt_rounded,
+                        color: Colors.white,
+                        size: 14,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(name, style: AppTheme.h1.copyWith(fontSize: 22)),
-                IconButton(
-                  onPressed: () => _showEditNameDialog(name),
-                  icon: Icon(
-                    Icons.edit_outlined,
-                    size: 18,
-                    color: AppTheme.primary,
+                Text(
+                  name,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimary,
+                    letterSpacing: -0.5,
                   ),
                 ),
+                const SizedBox(width: 4),
+                if (isOwner)
+                  IconButton(
+                    onPressed: () => _showEditNameDialog(name),
+                    icon: Icon(
+                      Icons.edit_outlined,
+                      size: 18,
+                      color: AppTheme.primary,
+                    ),
+                  ),
               ],
             ),
+            const SizedBox(height: 4),
             GestureDetector(
-              onTap: _updateLocation,
+              onTap: isOwner ? _updateLocation : null,
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
+                  horizontal: 14,
+                  vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.background,
+                  color: isDark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(
-                  loc,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.location_on, size: 14, color: AppTheme.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      loc,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
+            if (bio.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  bio,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    color: AppTheme.textSecondary,
+                    height: 1.4,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+            if (isOwner)
+              TextButton.icon(
+                onPressed: () => _showEditBioDialog(_bio),
+                icon: const Icon(Icons.edit, size: 14),
+                label: const Text("Edit Bio"),
+              ),
           ],
         ),
       ),
@@ -433,14 +632,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Row(
             children: [
               Icon(
-                isDark ? Icons.dark_mode : Icons.light_mode,
+                isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
                 color: AppTheme.primary,
               ),
               const SizedBox(width: 12),
               Text(
                 "Dark Appearance",
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
                   color: AppTheme.textPrimary,
                 ),
               ),
@@ -460,10 +660,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: AppTheme.h2),
+        Text(
+          title,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.textPrimary,
+            letterSpacing: -0.3,
+          ),
+        ),
         TextButton(
-          onPressed: () => context.push("/products", extra: "listing"),
-          child: const Text("See All"),
+          onPressed: () => context.push("/products/seller/$uid"),
+          style: TextButton.styleFrom(
+            backgroundColor: AppTheme.primaryLight,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            shape: const StadiumBorder(),
+          ),
+          child: Text(
+            "See All",
+            style: GoogleFonts.plusJakartaSans(
+              color: AppTheme.isDark
+                  ? const Color(0xFF4EDEA3)
+                  : AppTheme.primaryDark,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            ),
+          ),
         ),
       ],
     );

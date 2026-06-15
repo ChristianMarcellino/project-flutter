@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:localmart/constants.dart';
+import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/services/product_service.dart';
+import 'package:localmart/services/user_service.dart';
 import 'package:localmart/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 
@@ -53,6 +55,25 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   Future<void> _submit() async {
+    final user = await UserService.getUser(authService.currentUser!.uid);
+
+    final hasLocation =
+        user?['locationName'] != null &&
+        user!['locationName'].toString().isNotEmpty;
+
+    if (!hasLocation) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Please complete your location before posting a product.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
     if (!_formKey.currentState!.validate() || _images.isEmpty) return;
     setState(() => _isLoading = true);
     try {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:localmart/services/auth_service.dart';
 
@@ -18,13 +17,6 @@ class _SplashGateScreenState extends State<SplashGateScreen> {
   }
 
   Future<void> _init() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    final gpsEnabled = await Geolocator.isLocationServiceEnabled();
-
-    if (!gpsEnabled) {
-      await Geolocator.openLocationSettings();
-    }
 
     final user = authService.currentUser;
 

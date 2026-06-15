@@ -5,7 +5,10 @@ class UserService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   static Future<Map<String, dynamic>?> getUser(String uid) async {
-    final doc = await _firestore.collection(AppConstants.usersCollection).doc(uid).get();
+    final doc = await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .get();
     if (!doc.exists) return null;
     return doc.data();
   }
@@ -28,5 +31,24 @@ class UserService {
       'province': province,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  static Future<void> updateToken(String uid, String token) async {
+    await _firestore.collection(AppConstants.usersCollection).doc(uid).set({
+      'fcmToken': token,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  static Stream<List<Map<String, dynamic>>> getAllUsers() {
+    return _firestore
+        .collection(AppConstants.usersCollection)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            return {...data, 'uid': doc.id};
+          }).toList(),
+        );
   }
 }

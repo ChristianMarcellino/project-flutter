@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:localmart/models/product.dart';
 import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/services/product_service.dart';
@@ -39,9 +40,16 @@ class _ProductCardState extends State<ProductCard> {
   Future<void> _toggleLike() async {
     final user = authService.currentUser;
     if (user == null || _likeLoading) return;
+    final userProfile = await UserService.getUser(user.uid);
+    if (userProfile == null) return;
     setState(() => _likeLoading = true);
-    await ProductService().toggleLike(widget.product.id, user.uid);
     if (mounted) setState(() => _likeLoading = false);
+    await ProductService().toggleLike(
+      product: widget.product,
+      userId: user.uid,
+      username: userProfile['username'] ?? 'User',
+      profilePicture: userProfile['avatar'],
+    );
   }
 
   @override
@@ -69,7 +77,7 @@ class _ProductCardState extends State<ProductCard> {
       onTap: () => context.push("/product/${widget.product.id}"),
       child: Container(
         width: 240,
-        margin: const EdgeInsets.only(right: 16),
+        margin: const EdgeInsets.only(right: 16, bottom: 8),
         decoration: AppTheme.cardDecoration,
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -104,6 +112,30 @@ class _ProductCardState extends State<ProductCard> {
                             color: AppTheme.textSecondary,
                           ),
                         ),
+                  if (widget.product.status == 'sold')
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF64748B),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          "SOLD",
+                          style: GoogleFonts.plusJakartaSans(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ),
                   Positioned(
                     top: 10,
                     right: 10,
@@ -130,7 +162,7 @@ class _ProductCardState extends State<ProductCard> {
                                     : Icons.favorite_border_rounded,
                                 size: 18,
                                 color: isLiked
-                                    ? AppTheme.error
+                                    ? const Color(0xFFEF4444)
                                     : AppTheme.textSecondary,
                               ),
                       ),
@@ -142,56 +174,70 @@ class _ProductCardState extends State<ProductCard> {
             Expanded(
               flex: 2,
               child: Padding(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      widget.product.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      FormatUtils.formatPrice(widget.product.price),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.primary,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.location_on_outlined,
-                          size: 12,
-                          color: AppTheme.textSecondary,
+                        Text(
+                          widget.product.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
                         ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            widget.product.locationName,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.textSecondary,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                        const SizedBox(height: 2),
+                        Text(
+                          FormatUtils.formatPrice(widget.product.price),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.primary,
+                            letterSpacing: -0.5,
                           ),
                         ),
                       ],
                     ),
-                    Text(
-                      distanceVal,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.location_on_outlined,
+                                size: 12,
+                                color: AppTheme.textSecondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  widget.product.locationName,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          distanceVal,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            color: AppTheme.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

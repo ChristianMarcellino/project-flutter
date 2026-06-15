@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/theme/app_theme.dart';
 import 'package:localmart/widgets/auth_input_field.dart';
@@ -91,7 +92,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               Center(
                 child: TextButton(
                   onPressed: () => context.go('/login'),
-                  child: const Text("Back to Login"),
+                  child: Text(
+                    "Back to Login",
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ),
             ],

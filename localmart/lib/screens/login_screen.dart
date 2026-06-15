@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/widgets/auth_input_field.dart';
 import 'package:localmart/widgets/custom_button.dart';
@@ -47,10 +48,11 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       if (mounted) context.go('/');
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -109,9 +111,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: () => context.go('/forgot-password'),
                   child: Text(
                     'Forgot Password?',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       color: AppTheme.primary,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
                     ),
                   ),
                 ),
@@ -129,11 +132,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Text.rich(
                     TextSpan(
                       text: "Don't have an account? ",
-                      style: TextStyle(color: AppTheme.textSecondary),
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.textSecondary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                       children: [
                         TextSpan(
                           text: 'Register',
-                          style: TextStyle(
+                          style: GoogleFonts.plusJakartaSans(
                             color: AppTheme.primary,
                             fontWeight: FontWeight.bold,
                           ),

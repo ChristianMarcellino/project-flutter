@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:localmart/firebase_options.dart';
 import 'package:localmart/routers/router.dart';
 import 'package:localmart/screens/add_product_screen.dart';
@@ -12,7 +14,9 @@ import 'package:localmart/screens/profile_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:localmart/screens/saved_screen.dart';
 import 'package:localmart/screens/search_screen.dart';
+import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/services/global_pref_service.dart';
+import 'package:localmart/services/user_service.dart';
 import 'package:localmart/theme/app_theme.dart';
 import 'package:app_links/app_links.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -31,11 +35,11 @@ Future<void> requestNotificationPermission() async {
   );
 
   if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-    print("Permission Granted");
+    debugPrint("Permission Granted");
   } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
-    print("Izin notifikasi sementara diberikan");
+    debugPrint("Izin notifikasi sementara diberikan");
   } else {
-    print("Izin notifikasi ditolak");
+    debugPrint("Izin notifikasi ditolak");
   }
 }
 
@@ -146,7 +150,6 @@ void main() async {
     android: androidInit,
     iOS: iosInit,
   );
-  await flutterLocalNotificationsPlugin.initialize(settings: settings);
 
   const AndroidNotificationChannel defaultChannel = AndroidNotificationChannel(
     'default_channel',
@@ -186,7 +189,7 @@ class _MainAppState extends State<MainApp> {
     _appLinks.uriLinkStream.listen((Uri uri) {
       if (!mounted) return;
 
-      print("Incoming URI: $uri");
+      debugPrint("Incoming URI: $uri");
 
       final segments = uri.pathSegments;
 
@@ -200,73 +203,36 @@ class _MainAppState extends State<MainApp> {
     });
   }
 
-  String status = "Memulai. . .";
-  String topic = "tes-notif";
-
-  void setupFirebaseMessaging() async {
+  Future<void> setupFirebaseMessaging() async {
     final messaging = FirebaseMessaging.instance;
-    try {
-      final fcmToken = await messaging.getToken();
-      debugPrint("FCM Token: $fcmToken");
 
-      if (fcmToken == null) {
-        setState(() {
-          status = "Gagal mendapatkan token FCM";
-        });
-        return;
-      } else {
-        setState(() {
-          status = "Token FCM berhasil didapatkan";
-        });
+    await messaging.requestPermission(alert: true, badge: true, sound: true);
+
+    FirebaseMessaging.onMessage.listen((message) {
+      if (message.data.isNotEmpty) {
+        showNotificationFromData(message.data);
+      } else if (message.notification != null) {
+        showBasicNotification(
+          message.notification!.title,
+          message.notification!.body,
+        );
       }
-    } catch (e) {
-      setState(() {
-        status = "Error token FCM: $e";
-      });
-      debugPrint("Error getToken: $e");
-      return;
-    }
-
-    messaging.onTokenRefresh.listen((token) {
-      debugPrint("FCM token refreshed: $token");
     });
 
-    if (!kIsWeb) {
-      try {
-        await messaging.subscribeToTopic(topic);
-        setState(() {
-          status = "Subscribe to topic: $topic";
-        });
-        debugPrint("Subscribed to topic: $topic");
-      } catch (e) {
-        setState(() {
-          status = "Error subscribe topic: $e";
-        });
-        debugPrint("Error subscribing to topic: $e");
+    messaging.onTokenRefresh.listen((token) async {
+      final user = authService.currentUser;
+      if (user != null) {
+        await UserService.updateToken(user.uid, token);
       }
-    } else {
-      setState(() {
-        status = "Web siap menerima notifikasi";
-      });
-    }
+    });
 
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('Received foreground message: ${message.messageId}');
+    authService.authStateChanges.listen((user) async {
+      if (user == null) return;
 
-      if (kIsWeb) {
-        // For web, just log the message - browser handles notifications
-        debugPrint('Web notification: ${message.notification?.title}');
-      } else {
-        // For Android/iOS, show local notification
-        if (message.data.isNotEmpty) {
-          showNotificationFromData(message.data);
-        } else if (message.notification != null) {
-          showBasicNotification(
-            message.notification!.title,
-            message.notification!.body,
-          );
-        }
-      }
+      final token = await messaging.getToken();
+      if (token == null) return;
+
+      await UserService.updateToken(user.uid, token);
     });
   }
 
@@ -296,11 +262,11 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  final List<Widget> _screens = const [
+  final List<Widget> _screens = [
     HomeScreen(),
     SearchScreen(),
     SavedScreen(),
-    ProfileScreen(),
+    ProfileScreen(userId: authService.currentUser!.uid),
   ];
 
   @override
@@ -309,48 +275,64 @@ class _MainScreenState extends State<MainScreen> {
       valueListenable: darkModeNotifier,
       builder: (context, isDark, _) {
         return Scaffold(
+          extendBody: true,
           backgroundColor: AppTheme.scaffoldBackground,
           body: _screens[_currentIndex],
-          bottomNavigationBar: Container(
-            height: 78,
-            decoration: BoxDecoration(
-              color: AppTheme.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
+          bottomNavigationBar: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                height: 90,
+                decoration: BoxDecoration(
+                  color: AppTheme.surface.withValues(
+                    alpha: isDark ? 0.85 : 0.8,
+                  ),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
+                  border: Border(
+                    top: BorderSide(
+                      color: isDark
+                          ? const Color(0xFF334155).withValues(alpha: 0.5)
+                          : const Color(0xFFBBCABF).withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
                 ),
-              ],
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(24),
-              ),
-            ),
-            child: SafeArea(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(
-                    0,
-                    isDark ? Icons.home : Icons.home_outlined,
-                    "Home",
-                    isDark,
+                child: SafeArea(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildNavItem(
+                        0,
+                        _currentIndex == 0
+                            ? Icons.home_rounded
+                            : Icons.home_outlined,
+                        "Home",
+                        isDark,
+                      ),
+                      _buildNavItem(1, Icons.search_rounded, "Search", isDark),
+                      _buildAddButton(),
+                      _buildNavItem(
+                        2,
+                        _currentIndex == 2
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        "Saved",
+                        isDark,
+                      ),
+                      _buildNavItem(
+                        3,
+                        _currentIndex == 3
+                            ? Icons.person_rounded
+                            : Icons.person_outline_rounded,
+                        "Profile",
+                        isDark,
+                      ),
+                    ],
                   ),
-                  _buildNavItem(1, Icons.search, "Search", isDark),
-                  _buildAddButton(),
-                  _buildNavItem(
-                    2,
-                    _currentIndex == 2 ? Icons.favorite : Icons.favorite_border,
-                    "Saved",
-                    isDark,
-                  ),
-                  _buildNavItem(
-                    3,
-                    _currentIndex == 3 ? Icons.person : Icons.person_outline,
-                    "Profile",
-                    isDark,
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -361,26 +343,41 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildNavItem(int index, IconData icon, String label, bool isDark) {
     final isSelected = _currentIndex == index;
-    final activeColor = AppTheme.primary;
+    final activeColor = isDark ? const Color(0xFF4EDEA3) : AppTheme.primaryDark;
     final inactiveColor = AppTheme.textSecondary;
 
     return GestureDetector(
       onTap: () => setState(() => _currentIndex = index),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: isSelected ? activeColor : inactiveColor),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.primary.withValues(alpha: 0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
               color: isSelected ? activeColor : inactiveColor,
+              size: 24,
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: isSelected ? activeColor : inactiveColor,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -394,13 +391,20 @@ class _MainScreenState extends State<MainScreen> {
         );
       },
       child: Container(
-        width: 58,
-        height: 58,
+        width: 56,
+        height: 56,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: AppTheme.primary,
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primary.withValues(alpha: 0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
-        child: const Icon(Icons.add, color: Colors.white, size: 30),
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:localmart/theme/app_theme.dart';
 
 class AuthInputField extends StatelessWidget {
@@ -30,12 +31,13 @@ class AuthInputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppTheme.isDark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: TextStyle(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             fontWeight: FontWeight.w700,
             color: AppTheme.textPrimary,
@@ -47,11 +49,14 @@ class AuthInputField extends StatelessWidget {
           obscureText: isPassword ? obscurePassword : false,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
-          style: TextStyle(color: AppTheme.textPrimary),
+          style: GoogleFonts.plusJakartaSans(color: AppTheme.textPrimary, fontSize: 15),
           decoration: InputDecoration(
             errorText: errorText?.isNotEmpty == true ? errorText : null,
             hintText: hint,
-            hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+            hintStyle: GoogleFonts.plusJakartaSans(
+              color: AppTheme.textSecondary.withValues(alpha: 0.6),
+              fontSize: 14,
+            ),
             prefixIcon: Icon(icon, color: AppTheme.textSecondary, size: 20),
             suffixIcon: isPassword
                 ? IconButton(
@@ -64,22 +69,30 @@ class AuthInputField extends StatelessWidget {
                   )
                 : null,
             filled: true,
-            fillColor: AppTheme.surface,
+            fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 18,
             ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: AppTheme.border),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: AppTheme.border),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: AppTheme.primary, width: 2),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppTheme.primary, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppTheme.error, width: 1.5),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppTheme.error, width: 1.5),
             ),
           ),
         ),

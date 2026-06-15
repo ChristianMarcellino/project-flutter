@@ -33,7 +33,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     if (user == null) return;
 
-    await _productService.toggleLike(product.id, user.uid);
+    final userProfile = await UserService.getUser(user.uid);
+
+    if (userProfile == null) return;
+
+    await _productService.toggleLike(
+      product: product,
+      userId: user.uid,
+      username: userProfile['username'] ?? 'User',
+      profilePicture: userProfile['avatar'],
+    );
   }
 
   Future<void> _openWhatsApp(String phone, String title) async {
@@ -85,7 +94,8 @@ LocalMart - Shop Local, Save More!_
       stream: _productService.streamProductById(widget.productId),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const Scaffold(
+          return Scaffold(
+            backgroundColor: AppTheme.background,
             body: Center(child: CircularProgressIndicator()),
           );
         }
@@ -113,19 +123,18 @@ LocalMart - Shop Local, Save More!_
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
+                              horizontal: 14,
+                              vertical: 6,
                             ),
                             decoration: BoxDecoration(
                               color: AppTheme.primaryLight,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(100),
                             ),
                             child: Text(
                               product.category,
-                              style: TextStyle(
+                              style: AppTheme.label.copyWith(
                                 color: AppTheme.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
@@ -157,6 +166,34 @@ LocalMart - Shop Local, Save More!_
                       const SizedBox(height: 12),
 
                       Text(product.description, style: AppTheme.body),
+                      const SizedBox(height: 12),
+                      Text(
+                        "Location: ${product.locationName}",
+                        style: AppTheme.body.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                      if (product.sellerId == authService.currentUser?.uid)
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            await ProductService().updateProductStatus(
+                              product,
+                              product.status == 'available'
+                                  ? 'sold'
+                                  : 'available',
+                            );
+                          },
+                          icon: Icon(
+                            product.status == 'available'
+                                ? Icons.check_circle
+                                : Icons.inventory_2,
+                          ),
+                          label: Text(
+                            product.status == 'available'
+                                ? 'Mark as Sold'
+                                : 'Mark as Available',
+                          ),
+                        ),
 
                       const SizedBox(height: 40),
 
@@ -165,9 +202,9 @@ LocalMart - Shop Local, Save More!_
                         style: AppTheme.h2,
                       ),
 
-                      _buildCommentInput(product.id),
+                      _buildCommentInput(product, product.id),
 
-                      _buildCommentsList(product.id),
+                      _buildCommentsList(product),
                     ],
                   ),
                 ),
@@ -342,13 +379,31 @@ LocalMart - Shop Local, Save More!_
               const SizedBox(width: 12),
 
               Expanded(
-                child: Text(
-                  product.sellerName,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.sellerName,
+                      style: AppTheme.body.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Seller',
+                      style: AppTheme.caption.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              InkWell(
+                onTap: () {
+                  context.push('/profile/${product.sellerId}');
+                },
+                child: const Icon(Icons.arrow_back_ios, size: 20),
               ),
             ],
           ),
@@ -357,7 +412,7 @@ LocalMart - Shop Local, Save More!_
     );
   }
 
-  Widget _buildCommentInput(String pid) {
+  Widget _buildCommentInput(Product product, String pid) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
@@ -365,13 +420,28 @@ LocalMart - Shop Local, Save More!_
           Expanded(
             child: TextField(
               controller: _commentController,
+              cursorColor: AppTheme.primary,
+              style: TextStyle(color: AppTheme.textPrimary),
               decoration: InputDecoration(
                 hintText: "Ask a question...",
+                hintStyle: TextStyle(color: AppTheme.textSecondary),
                 filled: true,
                 fillColor: AppTheme.surface,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppTheme.primary, width: 1.5),
                 ),
               ),
             ),
@@ -387,19 +457,22 @@ LocalMart - Shop Local, Save More!_
 
               _commentController.clear();
 
-              await _commentService.addComment(productId: pid, text: text);
+              await _commentService.addComment(product: product, text: text);
             },
+            style: IconButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.white,
+            ),
             icon: const Icon(Icons.send_rounded),
-            style: IconButton.styleFrom(backgroundColor: AppTheme.primary),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCommentsList(String pid) {
+  Widget _buildCommentsList(Product product) {
     return StreamBuilder<QuerySnapshot>(
-      stream: _commentService.streamComments(pid),
+      stream: _commentService.streamComments(product.id),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const SizedBox();
@@ -417,7 +490,11 @@ LocalMart - Shop Local, Save More!_
 
             final data = commentDoc.data() as Map<String, dynamic>;
 
-            return _CommentTile(pid: pid, commentId: commentDoc.id, data: data);
+            return _CommentTile(
+              product: product,
+              commentId: commentDoc.id,
+              data: data,
+            );
           },
         );
       },
@@ -438,18 +515,20 @@ LocalMart - Shop Local, Save More!_
               child: ElevatedButton.icon(
                 onPressed: () =>
                     _openWhatsApp(product.sellerPhoneNumber, product.title),
-                icon: const Icon(Icons.chat_bubble_outline_rounded),
-                label: const Text(
+                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 20),
+                label: Text(
                   "Chat Seller",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: AppTheme.body.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.success,
+                  backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  shape: const StadiumBorder(),
+                  elevation: 0,
                 ),
               ),
             ),
@@ -461,12 +540,12 @@ LocalMart - Shop Local, Save More!_
 }
 
 class _CommentTile extends StatefulWidget {
-  final String pid;
+  final Product product;
   final String commentId;
   final Map<String, dynamic> data;
 
   const _CommentTile({
-    required this.pid,
+    required this.product,
     required this.commentId,
     required this.data,
   });
@@ -476,6 +555,8 @@ class _CommentTile extends StatefulWidget {
 }
 
 class _CommentTileState extends State<_CommentTile> {
+  bool showReplies = false;
+
   final CommentService _commentService = CommentService();
 
   final TextEditingController _replyController = TextEditingController();
@@ -491,7 +572,7 @@ class _CommentTileState extends State<_CommentTile> {
   @override
   Widget build(BuildContext context) {
     final data = widget.data;
-
+    final replyCount = data['replyCount'] ?? 0;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -504,23 +585,32 @@ class _CommentTileState extends State<_CommentTile> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(100),
-                child:
-                    data['userAvatar'] != null &&
-                        data['userAvatar'].toString().isNotEmpty
-                    ? Image.memory(
-                        base64Decode(data['userAvatar']),
-                        width: 42,
-                        height: 42,
-                        fit: BoxFit.cover,
-                      )
-                    : Container(
-                        width: 42,
-                        height: 42,
-                        color: AppTheme.border,
-                        child: const Icon(Icons.person, size: 18),
-                      ),
+              InkWell(
+                onTap: () {
+                  final uid = data['userId'];
+
+                  if (uid != null) {
+                    context.push('/profile/$uid');
+                  }
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(100),
+                  child:
+                      data['userAvatar'] != null &&
+                          data['userAvatar'].toString().isNotEmpty
+                      ? Image.memory(
+                          base64Decode(data['userAvatar']),
+                          width: 42,
+                          height: 42,
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          width: 42,
+                          height: 42,
+                          color: AppTheme.border,
+                          child: const Icon(Icons.person, size: 18),
+                        ),
+                ),
               ),
 
               const SizedBox(width: 12),
@@ -529,11 +619,20 @@ class _CommentTileState extends State<_CommentTile> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      data['userName'] ?? 'User',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
+                    GestureDetector(
+                      onTap: () {
+                        final uid = data['userId'];
+
+                        if (uid != null) {
+                          context.push('/profile/$uid');
+                        }
+                      },
+                      child: Text(
+                        data['userName'] ?? 'User',
+                        style: AppTheme.label.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textPrimary,
+                        ),
                       ),
                     ),
 
@@ -541,163 +640,206 @@ class _CommentTileState extends State<_CommentTile> {
 
                     Text(
                       data['text'] ?? '',
-                      style: TextStyle(color: AppTheme.textPrimary),
+                      style: AppTheme.body.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-
-          Padding(
-            padding: const EdgeInsets.only(left: 54),
-            child: TextButton(
-              onPressed: () {
-                if (!mounted) return;
-
-                setState(() {
-                  showReplyField = !showReplyField;
-                });
-              },
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(0, 0),
-              ),
-              child: Text(
-                "Reply",
-                style: TextStyle(color: AppTheme.textPrimary, fontSize: 13),
-              ),
-            ),
-          ),
-
-          if (showReplyField)
+          if (authService.currentUser != null) ...[
             Padding(
               padding: const EdgeInsets.only(left: 54),
               child: Row(
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _replyController,
-                      decoration: InputDecoration(
-                        hintText: "Write a reply...",
-                        isDense: true,
-                        filled: true,
-                        fillColor: AppTheme.background,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        showReplyField = !showReplyField;
+                      });
+                    },
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 0),
+                    ),
+                    child: Text(
+                      "Reply",
+                      style: TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontSize: 13,
                       ),
                     ),
                   ),
 
-                  IconButton(
-                    onPressed: () async {
-                      if (_replyController.text.trim().isEmpty) {
-                        return;
-                      }
-
-                      await _commentService.addReply(
-                        productId: widget.pid,
-                        commentId: widget.commentId,
-                        text: _replyController.text.trim(),
-                      );
-
-                      if (!mounted) return;
-                      _replyController.clear();
+                  TextButton(
+                    onPressed: () {
                       setState(() {
-                        showReplyField = false;
+                        showReplies = !showReplies;
                       });
                     },
-                    icon: const Icon(Icons.send_rounded),
+                    child: Text(
+                      showReplies
+                          ? "Hide replies"
+                          : "View replies ($replyCount)",
+                    ),
                   ),
                 ],
               ),
             ),
 
-          Padding(
-            padding: const EdgeInsets.only(left: 54, top: 12),
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _commentService.streamReplies(
-                productId: widget.pid,
-                commentId: widget.commentId,
-              ),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const SizedBox();
-                }
-
-                final replies = snapshot.data!.docs;
-
-                return Column(
-                  children: replies.map((replyDoc) {
-                    final reply = replyDoc.data() as Map<String, dynamic>;
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(100),
-                            child:
-                                reply['userAvatar'] != null &&
-                                    reply['userAvatar'].toString().isNotEmpty
-                                ? Image.memory(
-                                    base64Decode(reply['userAvatar']),
-                                    width: 28,
-                                    height: 28,
-                                    fit: BoxFit.cover,
-                                  )
-                                : Container(
-                                    width: 28,
-                                    height: 28,
-                                    color: AppTheme.border,
-                                  ),
+            if (showReplyField)
+              Padding(
+                padding: const EdgeInsets.only(left: 54),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _replyController,
+                        decoration: InputDecoration(
+                          hintText: "Write a reply...",
+                          isDense: true,
+                          filled: true,
+                          fillColor: AppTheme.background,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
                           ),
-
-                          const SizedBox(width: 8),
-
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: AppTheme.background,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    reply['userName'] ?? 'User',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                      color: AppTheme.textPrimary,
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 2),
-
-                                  Text(
-                                    reply['text'] ?? '',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: AppTheme.textPrimary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
+                    ),
+
+                    IconButton(
+                      onPressed: () async {
+                        if (_replyController.text.trim().isEmpty) {
+                          return;
+                        }
+
+                        await _commentService.addReply(
+                          product: widget.product,
+                          commentId: widget.commentId,
+                          text: _replyController.text.trim(),
+                        );
+
+                        if (!mounted) return;
+                        _replyController.clear();
+                        setState(() {
+                          showReplyField = false;
+                        });
+                      },
+                      icon: const Icon(Icons.send_rounded),
+                    ),
+                  ],
+                ),
+              ),
+            if (showReplies)
+              Padding(
+                padding: const EdgeInsets.only(left: 54, top: 12),
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: _commentService.streamReplies(
+                    productId: widget.product.id,
+                    commentId: widget.commentId,
+                  ),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const SizedBox();
+                    }
+
+                    final replies = snapshot.data!.docs;
+
+                    return Column(
+                      children: replies.map((replyDoc) {
+                        final reply = replyDoc.data() as Map<String, dynamic>;
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              InkWell(
+                                onTap: () {
+                                  final uid = reply['userId'];
+
+                                  if (uid != null) {
+                                    context.push('/profile/$uid');
+                                  }
+                                },
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(100),
+                                  child:
+                                      reply['userAvatar'] != null &&
+                                          reply['userAvatar']
+                                              .toString()
+                                              .isNotEmpty
+                                      ? Image.memory(
+                                          base64Decode(reply['userAvatar']),
+                                          width: 28,
+                                          height: 28,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Container(
+                                          width: 50,
+                                          height: 50,
+                                          color: AppTheme.border,
+                                          child: const Icon(Icons.person),
+                                        ),
+                                ),
+                              ),
+
+                              const SizedBox(width: 8),
+
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.background,
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () {
+                                          final uid = reply['userId'];
+
+                                          if (uid != null) {
+                                            context.push('/profile/$uid');
+                                          }
+                                        },
+                                        child: Text(
+                                          reply['userName'] ?? 'User',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                            color: AppTheme.textPrimary,
+                                          ),
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 2),
+
+                                      Text(
+                                        reply['text'] ?? '',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: AppTheme.textPrimary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
                     );
-                  }).toList(),
-                );
-              },
-            ),
-          ),
+                  },
+                ),
+              ),
+          ],
         ],
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:localmart/models/product.dart';
 import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/services/product_service.dart';
@@ -42,20 +43,31 @@ class _SavedScreenState extends State<SavedScreen> {
 
     if (user == null) {
       return Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppTheme.scaffoldBackground,
         body: Center(
-          child: Text('Please log in to see saved items', style: AppTheme.body),
+          child: Text(
+            'Please log in to see saved items',
+            style: GoogleFonts.plusJakartaSans(color: AppTheme.textSecondary, fontSize: 14),
+          ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.scaffoldBackground,
       appBar: AppBar(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppTheme.scaffoldBackground,
         elevation: 0,
         centerTitle: true,
-        title: Text('Saved Items', style: AppTheme.h2),
+        title: Text(
+          'Saved Items',
+          style: GoogleFonts.plusJakartaSans(
+            color: AppTheme.textPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
+        ),
       ),
       body: StreamBuilder<List<Product>>(
         stream: ProductService().getAllProducts(),
@@ -74,14 +86,14 @@ class _SavedScreenState extends State<SavedScreen> {
           }
 
           return GridView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
             physics: const BouncingScrollPhysics(),
             itemCount: saved.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
-              mainAxisExtent: 240,
+              mainAxisExtent: 245,
             ),
             itemBuilder: (context, index) => GridProductCard(
               product: saved[index],
@@ -105,8 +117,22 @@ class _SavedScreenState extends State<SavedScreen> {
             color: AppTheme.textSecondary,
           ),
           const SizedBox(height: 16),
-          Text('Nothing saved yet', style: AppTheme.h2),
-          Text('Heart items to see them here', style: AppTheme.body),
+          Text(
+            'Nothing saved yet',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Heart items to see them here',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              color: AppTheme.textSecondary,
+            ),
+          ),
         ],
       ),
     );

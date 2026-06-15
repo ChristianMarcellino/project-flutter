@@ -2,8 +2,10 @@ import 'package:go_router/go_router.dart';
 import 'package:localmart/main.dart';
 import 'package:localmart/screens/forgot_password_screen.dart';
 import 'package:localmart/screens/login_screen.dart';
+import 'package:localmart/screens/notifications_screen.dart';
 import 'package:localmart/screens/product_detail_screen.dart';
 import 'package:localmart/screens/products_screen.dart';
+import 'package:localmart/screens/profile_screen.dart';
 import 'package:localmart/screens/register_screen.dart';
 import 'package:localmart/screens/search_screen.dart';
 import 'package:localmart/screens/splash_gate_screen.dart';
@@ -68,10 +70,29 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const SearchScreen(showBack: true),
     ),
     GoRoute(
+      path: '/notifications',
+      builder: (context, state) => NotificationScreen(),
+    ),
+    GoRoute(
       path: '/products',
       builder: (context, state) {
         final section = state.extra as String? ?? 'nearby';
         return ProductsScreen(section: section);
+      },
+    ),
+    GoRoute(
+      path: '/products/seller/:uid',
+      builder: (context, state) {
+        return ProductsScreen(
+          section: 'seller',
+          sellerId: state.pathParameters['uid'],
+        );
+      },
+    ),
+    GoRoute(
+      path: '/profile/:uid',
+      builder: (context, state) {
+        return ProfileScreen(userId: state.pathParameters['uid']!);
       },
     ),
     GoRoute(

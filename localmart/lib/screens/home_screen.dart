@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:localmart/models/product.dart';
+import 'package:localmart/services/notif_service.dart';
 import 'package:localmart/services/product_service.dart';
 import 'package:localmart/theme/app_theme.dart';
 import 'package:localmart/widgets/grid_product_card.dart';
@@ -21,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _locationName = "";
   double _userLat = 0.0;
   double _userLong = 0.0;
+  String _avatar = "";
 
   List<Product> nearbyProducts(List<Product> products) {
     return [...products]..sort((a, b) {
@@ -51,26 +55,47 @@ class _HomeScreenState extends State<HomeScreen> {
     final locationName = user?['locationName'] ?? '';
     final userLat = (user?['latitude'] ?? 0).toDouble();
     final userLong = (user?['longitude'] ?? 0).toDouble();
+    final avatar = user?['avatar']?.toString() ?? "";
 
     if (mounted) {
       setState(() {
         _locationName = locationName;
         _userLat = userLat;
         _userLong = userLong;
+        _avatar = avatar;
+      });
+    }
+  }
+
+  Future<void> _checkLocation() async {
+    final user = authService.currentUser;
+    if (user == null) return;
+
+    final doc = await UserService.getUser(user.uid);
+    if (doc == null) return;
+    final location = doc["locationName"];
+    if (location == null || location.toString().isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showLocationDialog(user.uid);
       });
     }
   }
 
   @override
   void initState() {
-    _loadUser();
     super.initState();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await _loadUser();
+    await _checkLocation();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.scaffoldBackground,
       body: StreamBuilder<List<Product>>(
         stream: _productService.getAllProducts(),
         builder: (context, snapshot) {
@@ -100,7 +125,10 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildAppBar(context),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -119,10 +147,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height: 280,
+                  height: 275,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     physics: const BouncingScrollPhysics(),
                     itemCount: nearby.length,
                     itemBuilder: (context, index) =>
@@ -132,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 32, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
                   child: _buildSectionHeader(
                     context,
                     "Trending Now",
@@ -142,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 sliver: SliverGrid(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) => GridProductCard(
@@ -156,11 +184,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisCount: 2,
                     mainAxisSpacing: 16,
                     crossAxisSpacing: 16,
-                    mainAxisExtent: 240,
+                    mainAxisExtent: 245,
                   ),
                 ),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 100),
+              ),
             ],
           );
         },
@@ -168,62 +198,242 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showLocationDialog(String uid) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppTheme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: Text(
+            "Complete Your Profile",
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w800,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          content: Text(
+            "You haven't set your location yet. Please update it in your profile.",
+            style: GoogleFonts.plusJakartaSans(
+              color: AppTheme.textSecondary,
+              height: 1.5,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                "Later",
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                context.push("/profile/$uid");
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                shape: const StadiumBorder(),
+              ),
+              child: Text(
+                "Go to Profile",
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildAppBar(BuildContext context) {
+    final userId = authService.currentUser?.uid;
+
     return SliverAppBar(
       floating: true,
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.scaffoldBackground.withValues(alpha: 0.95),
       elevation: 0,
       centerTitle: false,
+
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("LocalMart", style: AppTheme.h1),
+          Text(
+            "LocalMart",
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.primary,
+              letterSpacing: -0.5,
+            ),
+          ),
           Row(
             children: [
-              Icon(Icons.location_on, size: 12, color: AppTheme.primary),
+              Icon(Icons.location_on, size: 13, color: AppTheme.primary),
               const SizedBox(width: 4),
               Text(
                 _locationName,
-                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
         ],
       ),
+
       actions: [
+        if (userId != null)
+          StreamBuilder<int>(
+            stream: NotifService().getUnreadCount(userId),
+            builder: (context, snapshot) {
+              final unreadCount = snapshot.data ?? 0;
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications_outlined),
+                      color: AppTheme.textPrimary,
+                      onPressed: () {
+                        context.push('/notifications');
+                      },
+                    ),
+
+                    if (unreadCount > 0)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(
+                            minWidth: 18,
+                            minHeight: 18,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            unreadCount > 99 ? '99+' : unreadCount.toString(),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+
         Padding(
-          padding: const EdgeInsets.only(right: 16),
+          padding: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
           child: Container(
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: AppTheme.surface,
               shape: BoxShape.circle,
-              border: Border.all(color: AppTheme.border),
+              border: Border.all(
+                color: AppTheme.primary.withValues(alpha: 0.2),
+                width: 1.5,
+              ),
             ),
+            child: _buildAvatarWidget(40),
           ),
         ),
       ],
     );
   }
 
+  Widget _buildAvatarWidget(double size) {
+    if (_avatar.isEmpty) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppTheme.border.withValues(alpha: 0.5),
+        ),
+        child: Icon(
+          Icons.person_outline_rounded,
+          size: size * 0.5,
+          color: AppTheme.textSecondary,
+        ),
+      );
+    }
+    return ClipOval(
+      child: Image.memory(
+        base64Decode(_avatar),
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppTheme.border.withValues(alpha: 0.5),
+          ),
+          child: Icon(
+            Icons.person_outline_rounded,
+            size: size * 0.5,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSearchBar(BuildContext context) {
+    final isDark = AppTheme.isDark;
     return GestureDetector(
       onTap: () => context.push("/search"),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: AppTheme.surface.withValues(alpha: 0.95),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.border),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 15,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
         child: Row(
           children: [
-            Icon(Icons.search_rounded, color: AppTheme.textSecondary),
+            Icon(Icons.search_rounded, color: AppTheme.textSecondary, size: 22),
             const SizedBox(width: 12),
-            Text(
-              "Search electronics, fashion...",
-              style: TextStyle(color: AppTheme.textSecondary),
+            Expanded(
+              child: Text(
+                "Search electronics, fashion, home...",
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.textSecondary.withValues(alpha: 0.7),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
-            const Spacer(),
             Icon(Icons.tune_rounded, color: AppTheme.primary, size: 20),
           ],
         ),
@@ -243,10 +453,23 @@ class _HomeScreenState extends State<HomeScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: AppTheme.h2),
+            Text(
+              title,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimary,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 2),
             Text(
               subtitle,
-              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -254,15 +477,17 @@ class _HomeScreenState extends State<HomeScreen> {
           onPressed: () => context.push("/products", extra: section),
           style: TextButton.styleFrom(
             backgroundColor: AppTheme.primaryLight,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            shape: const StadiumBorder(),
           ),
           child: Text(
             "See All",
-            style: TextStyle(
-              color: AppTheme.primary,
-              fontWeight: FontWeight.w600,
+            style: GoogleFonts.plusJakartaSans(
+              color: AppTheme.isDark
+                  ? const Color(0xFF4EDEA3)
+                  : AppTheme.primaryDark,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
             ),
           ),
         ),
@@ -275,10 +500,28 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.store, size: 64, color: AppTheme.textSecondary),
-          const SizedBox(height: 16), 
-          Text("No products found", style: AppTheme.h2),
-          Text("Be the first to list something!", style: AppTheme.body),
+          Icon(
+            Icons.storefront_outlined,
+            size: 64,
+            color: AppTheme.textSecondary,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            "No products found",
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Be the first to list something nearby!",
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              color: AppTheme.textSecondary,
+            ),
+          ),
         ],
       ),
     );
