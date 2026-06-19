@@ -63,7 +63,12 @@ class _SplashScreenState extends State<SplashScreen>
                   color: Colors.blueAccent,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Icon(Icons.store, size: 50, color: Colors.white),
+                child: Image.asset(
+                  'assets/logo.png',
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Text("Image not found");
+                  },
+                ),
               ),
 
               const SizedBox(height: 20),

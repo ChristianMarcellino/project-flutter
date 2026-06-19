@@ -75,7 +75,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: AppTheme.primaryLight,
                     borderRadius: BorderRadius.circular(24),
                   ),
-                  child: Icon(Icons.store, size: 48, color: AppTheme.primary),
+                  child: Image.asset(
+                    'assets/logo.png',
+                    width: 48,
+                    height: 48,
+                    color: AppTheme.primary,
+                  ),
                 ),
               ),
               const SizedBox(height: 32),

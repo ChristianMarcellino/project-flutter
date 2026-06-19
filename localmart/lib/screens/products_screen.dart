@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:localmart/models/product.dart';
@@ -18,8 +19,11 @@ class ProductsScreen extends StatefulWidget {
 }
 
 class _ProductsScreenState extends State<ProductsScreen> {
-  static const int _pageSize = 10;
-  int _currentPage = 1;
+  static const int _pageSize = 6;
+  List<Product> _products = [];
+  DocumentSnapshot? _lastDoc;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
 
   double _userLat = 0.0;
   double _userLong = 0.0;
@@ -37,10 +41,61 @@ class _ProductsScreenState extends State<ProductsScreen> {
     }
   }
 
+  Future<void> _loadInitial() async {
+    Query query = ProductService.productsRef
+        .orderBy('createdAt', descending: true)
+        .limit(_pageSize);
+
+    if (widget.section == 'seller' && widget.sellerId != null) {
+      query = query.where('sellerId', isEqualTo: widget.sellerId);
+    }
+
+    final snapshot = await query.get();
+
+    final items = snapshot.docs.map((doc) {
+      return Product.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+    }).toList();
+
+    setState(() {
+      _products = items;
+      _lastDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
+      _hasMore = snapshot.docs.length == _pageSize;
+    });
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || !_hasMore || _lastDoc == null) return;
+
+    setState(() => _isLoadingMore = true);
+
+    Query query = ProductService.productsRef
+        .orderBy('createdAt', descending: true)
+        .startAfterDocument(_lastDoc!)
+        .limit(_pageSize);
+
+    if (widget.section == 'seller' && widget.sellerId != null) {
+      query = query.where('sellerId', isEqualTo: widget.sellerId);
+    }
+
+    final snapshot = await query.get();
+
+    final items = snapshot.docs.map((doc) {
+      return Product.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+    }).toList();
+
+    setState(() {
+      _products.addAll(items);
+      _lastDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : _lastDoc;
+      _hasMore = snapshot.docs.length == _pageSize;
+      _isLoadingMore = false;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _loadUser();
+    _loadInitial();
   }
 
   String get _title {
@@ -73,33 +128,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
       default:
         return 'Items close to you';
     }
-  }
-
-  Stream<List<Product>> _getStream() {
-    if (widget.section == 'seller' && widget.sellerId != null) {
-      return ProductService().getProductsBySeller(widget.sellerId!);
-    }
-
-    return ProductService().getAllProducts();
-  }
-
-  List<Product> _filter(List<Product> products) {
-    if (widget.section == 'seller') {
-      return products.where((p) => p.sellerId == widget.sellerId).toList();
-    }
-
-    if (widget.section == 'trending') {
-      return [...products]
-        ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
-    }
-
-    if (widget.section == 'listing') {
-      return products
-          .where((p) => p.sellerId == authService.currentUser!.uid)
-          .toList();
-    }
-
-    return products;
   }
 
   @override
@@ -137,41 +165,31 @@ class _ProductsScreenState extends State<ProductsScreen> {
           ],
         ),
       ),
-      body: StreamBuilder<List<Product>>(
-        stream: _getStream(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-              child: CircularProgressIndicator(color: AppTheme.primary),
-            );
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (scroll) {
+          if (scroll.metrics.pixels >= scroll.metrics.maxScrollExtent - 300) {
+            _loadMore();
           }
-
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          final allFiltered = _filter(snapshot.data!);
-          final visibleCount = (_currentPage * _pageSize).clamp(
-            0,
-            allFiltered.length,
-          );
-          final visible = allFiltered.sublist(0, visibleCount);
-          final hasMore = visibleCount < allFiltered.length;
-
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
+          return false;
+        },
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            if (_products.isEmpty)
+              SliverFillRemaining(child: _buildEmptyState())
+            else
               SliverPadding(
                 padding: const EdgeInsets.all(16),
                 sliver: SliverGrid(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => GridProductCard(
-                      product: visible[index],
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final product = _products[index];
+
+                    return GridProductCard(
+                      product: product,
                       userLat: _userLat,
                       userLong: _userLong,
-                    ),
-                    childCount: visible.length,
-                  ),
+                    );
+                  }, childCount: _products.length),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     mainAxisSpacing: 16,
@@ -180,38 +198,18 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   ),
                 ),
               ),
-              if (hasMore)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 32),
-                    child: Center(
-                      child: ElevatedButton(
-                        onPressed: () => setState(() => _currentPage++),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 40,
-                            vertical: 16,
-                          ),
-                          shape: const StadiumBorder(),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          "Load More",
-                          style: AppTheme.body.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+
+            if (_isLoadingMore)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(child: CircularProgressIndicator()),
                 ),
-              const SliverToBoxAdapter(child: SizedBox(height: 32)),
-            ],
-          );
-        },
+              ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 32)),
+          ],
+        ),
       ),
     );
   }

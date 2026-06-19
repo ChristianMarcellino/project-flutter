@@ -21,12 +21,16 @@ final GoRouter appRouter = GoRouter(
     final isLoggedIn = user != null;
     final isVerified = user?.emailVerified ?? false;
     final currentPath = state.uri.path;
+    final isOnSplash = currentPath == '/splash';
+    final isOnGate = currentPath == '/gate';
 
     final isOnRegister = currentPath == '/register';
     final isOnVerifyEmail = currentPath == '/verify-email';
     final isOnLogin = currentPath == '/login';
     final isOnForgot = currentPath == '/forgot-password';
-
+    if (isOnSplash || isOnGate) {
+      return null;
+    }
     if (!isLoggedIn) {
       if (isOnRegister || isOnVerifyEmail || isOnLogin || isOnForgot) {
         return null;

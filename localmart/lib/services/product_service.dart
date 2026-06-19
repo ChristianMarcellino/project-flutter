@@ -70,7 +70,22 @@ class ProductService {
     });
   }
 
-  Stream<List<Product>> getProductsBySeller(String sellerId) {
+  Stream<List<Product>> getSomeProductsBySeller(String sellerId) {
+    return productsRef
+        .where('sellerId', isEqualTo: sellerId)
+        .limit(6)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map(
+                (doc) =>
+                    Product.fromMap(doc.data() as Map<String, dynamic>, doc.id),
+              )
+              .toList();
+        });
+  }
+
+  Stream<List<Product>> getAllProductsBySeller(String sellerId) {
     return productsRef.where('sellerId', isEqualTo: sellerId).snapshots().map((
       snapshot,
     ) {

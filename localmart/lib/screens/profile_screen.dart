@@ -393,7 +393,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   StreamBuilder<List<Product>>(
-                    stream: ProductService().getProductsBySeller(widget.userId),
+                    stream: ProductService().getSomeProductsBySeller(
+                      widget.userId,
+                    ),
                     builder: (context, snap) {
                       final products = snap.data ?? [];
                       if (products.isEmpty) {
