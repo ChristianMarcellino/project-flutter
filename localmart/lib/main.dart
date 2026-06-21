@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -204,10 +203,6 @@ class _MainAppState extends State<MainApp> {
   }
 
   Future<void> setupFirebaseMessaging() async {
-    final messaging = FirebaseMessaging.instance;
-
-    await messaging.requestPermission(alert: true, badge: true, sound: true);
-
     FirebaseMessaging.onMessage.listen((message) {
       if (message.data.isNotEmpty) {
         showNotificationFromData(message.data);
@@ -219,20 +214,12 @@ class _MainAppState extends State<MainApp> {
       }
     });
 
-    messaging.onTokenRefresh.listen((token) async {
+    FirebaseMessaging.instance.onTokenRefresh.listen((token) async {
       final user = authService.currentUser;
+
       if (user != null) {
         await UserService.updateToken(user.uid, token);
       }
-    });
-
-    authService.authStateChanges.listen((user) async {
-      if (user == null) return;
-
-      final token = await messaging.getToken();
-      if (token == null) return;
-
-      await UserService.updateToken(user.uid, token);
     });
   }
 

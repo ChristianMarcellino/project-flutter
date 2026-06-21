@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:localmart/models/app_notif.dart';
+import 'package:localmart/theme/app_theme.dart';
 
 class NotificationCard extends StatelessWidget {
   final AppNotification notification;
@@ -15,12 +15,12 @@ class NotificationCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: notification.isRead ? Colors.white : const Color(0xFFF5FDF8),
+        color: notification.isRead
+            ? AppTheme.surface
+            : AppTheme.primary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: notification.isRead
-              ? Colors.transparent
-              : const Color(0xFF21C063),
+          color: notification.isRead ? AppTheme.border : AppTheme.primary,
           width: 1,
         ),
       ),
@@ -28,7 +28,7 @@ class NotificationCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 22,
-            backgroundColor: Colors.grey.shade200,
+            backgroundColor: AppTheme.background,
             child:
                 notification.profilePicture != null &&
                     notification.profilePicture!.isNotEmpty
@@ -40,7 +40,7 @@ class NotificationCard extends StatelessWidget {
                       fit: BoxFit.cover,
                     ),
                   )
-                : const Icon(Icons.person),
+                : Icon(Icons.person, color: AppTheme.textSecondary),
           ),
 
           const SizedBox(width: 12),
@@ -53,14 +53,18 @@ class NotificationCard extends StatelessWidget {
                   notification.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
+                    fontSize: 14,
+                  ),
                 ),
 
                 const SizedBox(height: 4),
 
                 Text(
                   _timeAgo(notification.createdAt.toDate()),
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                 ),
               ],
             ),
@@ -79,8 +83,11 @@ class NotificationCard extends StatelessWidget {
                   return Container(
                     width: 52,
                     height: 52,
-                    color: Colors.grey.shade200,
-                    child: const Icon(Icons.image_not_supported),
+                    color: AppTheme.background,
+                    child: Icon(
+                      Icons.image_not_supported,
+                      color: AppTheme.textSecondary,
+                    ),
                   );
                 },
               ),
@@ -93,6 +100,10 @@ class NotificationCard extends StatelessWidget {
   String _timeAgo(DateTime date) {
     final diff = DateTime.now().difference(date);
 
+    if (diff.inMinutes < 1) {
+      return 'Just now';
+    }
+
     if (diff.inMinutes < 60) {
       return '${diff.inMinutes}m ago';
     }
@@ -101,6 +112,10 @@ class NotificationCard extends StatelessWidget {
       return '${diff.inHours}h ago';
     }
 
-    return '${diff.inDays}d ago';
+    if (diff.inDays < 7) {
+      return '${diff.inDays}d ago';
+    }
+
+    return '${date.day}/${date.month}/${date.year}';
   }
 }

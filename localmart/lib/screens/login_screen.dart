@@ -70,17 +70,14 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               Center(
                 child: Container(
+                  width: 90,
+                  height: 90,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: AppTheme.primaryLight,
                     borderRadius: BorderRadius.circular(24),
                   ),
-                  child: Image.asset(
-                    'assets/logo.png',
-                    width: 48,
-                    height: 48,
-                    color: AppTheme.primary,
-                  ),
+                  child: Image.asset('assets/logo.png', fit: BoxFit.contain),
                 ),
               ),
               const SizedBox(height: 32),

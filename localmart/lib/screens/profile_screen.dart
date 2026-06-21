@@ -28,6 +28,9 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool get isOwner => authService.currentUser?.uid == widget.userId;
+  final _nameController = TextEditingController();
+  final _bioController = TextEditingController();
+  final _phoneController = TextEditingController();
   late Future<Map<String, dynamic>> _userFuture;
   final ImagePicker _picker = ImagePicker();
   bool _uploadingAvatar = false;
@@ -58,134 +61,127 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _updateUsername(String newName) async {
-    if (newName.trim().isEmpty) return;
-    if (user == null) return;
+  void _showEditProfileDialog(Map<String, dynamic> userData) {
+    _nameController.text = userData['username'] ?? '';
+    _bioController.text = userData['bio'] ?? '';
+    _phoneController.text = userData['phoneNumber'] ?? '';
 
-    await FirebaseFirestore.instance
-        .collection(AppConstants.usersCollection)
-        .doc(widget.userId)
-        .update({'username': newName.trim()});
-
-    if (mounted) {
-      setState(() {
-        _userFuture = _loadUserData();
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Username updated")));
-    }
-  }
-
-  Future<void> _updateBio(String newBio) async {
-    if (user == null) return;
-
-    await FirebaseFirestore.instance
-        .collection(AppConstants.usersCollection)
-        .doc(widget.userId)
-        .update({'bio': newBio.trim()});
-
-    if (mounted) {
-      setState(() {
-        _userFuture = _loadUserData();
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Bio updated")));
-    }
-  }
-
-  void _showEditBioDialog(String currentBio) {
-    final controller = TextEditingController(text: currentBio);
-
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surface,
-        title: Text(
-          "Edit Bio",
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
-        ),
-        content: TextField(
-          controller: controller,
-          maxLines: 4,
-          maxLength: 150,
-          style: GoogleFonts.plusJakartaSans(color: AppTheme.textPrimary),
-          decoration: const InputDecoration(
-            hintText: "Tell something about yourself...",
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return AnimatedPadding(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              _updateBio(controller.text);
-              setState(() => _bio = controller.text);
-              Navigator.pop(context);
-            },
-            child: const Text("Save"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditNameDialog(String currentName) {
-    final controller = TextEditingController(text: currentName);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surface,
-        title: Text(
-          "Edit Username",
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: AppTheme.textPrimary,
-          ),
-        ),
-        content: TextField(
-          controller: controller,
-          style: GoogleFonts.plusJakartaSans(color: AppTheme.textPrimary),
-          decoration: InputDecoration(
-            hintText: "New username",
-            hintStyle: GoogleFonts.plusJakartaSans(
-              color: AppTheme.textSecondary,
-            ),
-            enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: AppTheme.border),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              "Cancel",
-              style: GoogleFonts.plusJakartaSans(
-                color: AppTheme.textSecondary,
-                fontWeight: FontWeight.bold,
+          child: Container(
+            decoration: AppTheme.cardDecoration.copyWith(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
               ),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              _updateUsername(controller.text);
-              Navigator.pop(context);
-            },
-            child: Text(
-              "Save",
-              style: GoogleFonts.plusJakartaSans(
-                color: AppTheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: StatefulBuilder(
+              builder: (context, setModalState) {
+                return SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // drag indicator
+                      Center(
+                        child: Container(
+                          width: 42,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: AppTheme.border.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      Text("Edit Profile", style: AppTheme.h2),
+
+                      const SizedBox(height: 16),
+
+                      TextField(
+                        controller: _nameController,
+                        style: TextStyle(color: AppTheme.textPrimary),
+                        decoration: AppTheme.inputDecoration(
+                          hintText: "Username",
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      TextField(
+                        controller: _bioController,
+                        maxLines: 3,
+                        style: TextStyle(color: AppTheme.textPrimary),
+                        decoration: AppTheme.inputDecoration(hintText: "Bio"),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      TextField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        style: TextStyle(color: AppTheme.textPrimary),
+                        decoration: AppTheme.inputDecoration(
+                          hintText: "Phone Number",
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                          ),
+                          onPressed: () async {
+                            await UserService.updateProfile(
+                              widget.userId,
+                              username: _nameController.text.trim(),
+                              bio: _bioController.text.trim(),
+                              phoneNumber: _phoneController.text.trim(),
+                            );
+
+                            if (mounted) {
+                              setState(() {
+                                _userFuture = _loadUserData();
+                              });
+                              Navigator.pop(context);
+                            }
+                          },
+                          child: const Text(
+                            "Save Changes",
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -353,10 +349,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               final username = userData['username'] ?? 'User';
               final location =
                   userData['locationName'] as String? ?? 'Set location';
+              final phoneNumber = userData['phoneNumber'] ?? '';
 
               return CustomScrollView(
                 slivers: [
-                  _buildHeader(username, _avatar, location, _bio),
+                  _buildHeader(username, _avatar, location, _bio, phoneNumber),
                   if (!isOwner)
                     SliverToBoxAdapter(
                       child: Padding(
@@ -457,7 +454,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildHeader(String name, String? avatar, String loc, String bio) {
+  Widget _buildHeader(
+    String name,
+    String? avatar,
+    String loc,
+    String bio,
+    String phoneNumber,
+  ) {
     final isDark = AppTheme.isDark;
     return SliverToBoxAdapter(
       child: Container(
@@ -524,46 +527,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Positioned(
                     bottom: 0,
                     right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.surface, width: 2),
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt_rounded,
-                        color: Colors.white,
-                        size: 14,
+                    child: GestureDetector(
+                      onTap: _pickAndUploadAvatar,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppTheme.surface, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          color: Colors.white,
+                          size: 14,
+                        ),
                       ),
                     ),
                   ),
               ],
             ),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  name,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.textPrimary,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                if (isOwner)
-                  IconButton(
-                    onPressed: () => _showEditNameDialog(name),
-                    icon: Icon(
-                      Icons.edit_outlined,
-                      size: 18,
-                      color: AppTheme.primary,
-                    ),
-                  ),
-              ],
+            Text(
+              name,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimary,
+                letterSpacing: -0.5,
+              ),
             ),
             const SizedBox(height: 4),
             GestureDetector(
@@ -613,10 +604,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
             if (isOwner)
-              TextButton.icon(
-                onPressed: () => _showEditBioDialog(_bio),
-                icon: const Icon(Icons.edit, size: 14),
-                label: const Text("Edit Bio"),
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () => _showEditProfileDialog({
+                    'username': name,
+                    'bio': bio,
+                    'phoneNumber': phoneNumber,
+                  }),
+                  icon: const Icon(Icons.edit),
+                  label: const Text("Edit Profile"),
+                ),
               ),
           ],
         ),

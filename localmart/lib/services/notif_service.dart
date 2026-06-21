@@ -1,10 +1,13 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:localmart/constants.dart';
 import 'package:localmart/models/app_notif.dart';
 import 'package:localmart/models/product.dart';
 import 'package:http/http.dart' as http;
+import 'package:localmart/services/auth_service.dart';
+import 'package:localmart/services/user_service.dart';
 
 class NotifService {
   NotifService._privateConstructor();
@@ -191,5 +194,23 @@ class NotifService {
       body: '$username replied to your comment',
       productId: product.id,
     );
+  }
+
+  static Future<void> registerFcmToken() async {
+    final user = authService.currentUser;
+
+    if (user == null) return;
+
+    final settings = await FirebaseMessaging.instance.getNotificationSettings();
+
+    if (settings.authorizationStatus != AuthorizationStatus.authorized) {
+      return;
+    }
+
+    final token = await FirebaseMessaging.instance.getToken();
+
+    if (token != null) {
+      await UserService.updateToken(user.uid, token);
+    }
   }
 }

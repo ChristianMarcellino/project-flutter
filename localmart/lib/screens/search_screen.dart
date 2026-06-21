@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -29,6 +30,8 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _minPriceController = TextEditingController();
   final TextEditingController _maxPriceController = TextEditingController();
   SearchMode _searchMode = SearchMode.item;
+  Timer? _searchDebounce;
+  Timer? _priceDebounce;
 
   String _query = '';
   String? _selectedCategory;
@@ -62,6 +65,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
+    _priceDebounce?.cancel();
     _searchController.dispose();
     _minPriceController.dispose();
     _maxPriceController.dispose();
@@ -366,7 +371,7 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       backgroundColor: AppTheme.scaffoldBackground,
       body: SafeArea(
-        bottom: false,
+        bottom: true,
         child: Column(
           children: [
             _buildSearchBar(context),
@@ -443,7 +448,21 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
               child: TextField(
                 controller: _searchController,
-                onChanged: (val) => setState(() => _query = val),
+                onChanged: (val) {
+                  if (_searchDebounce?.isActive ?? false) {
+                    _searchDebounce!.cancel();
+                  }
+
+                  _searchDebounce = Timer(
+                    const Duration(milliseconds: 400),
+                    () {
+                      if (!mounted) return;
+                      setState(() {
+                        _query = _searchController.text;
+                      });
+                    },
+                  );
+                },
                 style: GoogleFonts.plusJakartaSans(
                   color: AppTheme.textPrimary,
                   fontSize: 14,
@@ -588,9 +607,17 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                   decoration: AppTheme.inputDecoration(hintText: 'Min Price'),
                   onChanged: (value) {
-                    setState(() {
-                      _minPrice = double.tryParse(value) ?? 0;
-                    });
+                    if (_priceDebounce?.isActive ?? false)
+                      _priceDebounce!.cancel();
+
+                    _priceDebounce = Timer(
+                      const Duration(milliseconds: 400),
+                      () {
+                        setState(() {
+                          _minPrice = double.tryParse(value) ?? 0;
+                        });
+                      },
+                    );
                   },
                 ),
               ),
@@ -607,9 +634,19 @@ class _SearchScreenState extends State<SearchScreen> {
                     hintText: 'Max Price (Optional)',
                   ),
                   onChanged: (value) {
-                    setState(() {
-                      _maxPrice = value.isEmpty ? null : double.tryParse(value);
-                    });
+                    if (_priceDebounce?.isActive ?? false)
+                      _priceDebounce!.cancel();
+
+                    _priceDebounce = Timer(
+                      const Duration(milliseconds: 400),
+                      () {
+                        setState(() {
+                          _maxPrice = value.isEmpty
+                              ? null
+                              : double.tryParse(value);
+                        });
+                      },
+                    );
                   },
                 ),
               ),

@@ -40,7 +40,6 @@ class _HomeScreenState extends State<HomeScreen> {
         b.latitude,
         b.longitude,
       );
-
       return da.compareTo(db);
     });
   }
@@ -73,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final doc = await UserService.getUser(user.uid);
     if (doc == null) return;
+
     final location = doc["locationName"];
     if (location == null || location.toString().isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -94,6 +94,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = authService.currentUser?.uid;
+
     return Scaffold(
       backgroundColor: AppTheme.scaffoldBackground,
       body: StreamBuilder<List<Product>>(
@@ -116,8 +118,13 @@ class _HomeScreenState extends State<HomeScreen> {
           }
 
           final allProducts = snapshot.data!;
-          final nearby = nearbyProducts(allProducts).take(6).toList();
-          final trending = trendingProducts(allProducts).take(6).toList();
+
+          final filteredProducts = currentUserId == null
+              ? allProducts
+              : allProducts.where((p) => p.sellerId != currentUserId).toList();
+
+          final nearby = nearbyProducts(filteredProducts).take(6).toList();
+          final trending = trendingProducts(filteredProducts).take(6).toList();
 
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
@@ -163,8 +170,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
                   child: _buildSectionHeader(
                     context,
-                    "Trending Now",
-                    "Most popular this week",
+                    "Newest Products",
+                    "Latest items added",
                     "trending",
                   ),
                 ),
@@ -188,9 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 100),
-              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
           );
         },
@@ -225,28 +230,14 @@ class _HomeScreenState extends State<HomeScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(
-                "Later",
-                style: GoogleFonts.plusJakartaSans(
-                  color: AppTheme.textSecondary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              child: Text("Later"),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
                 context.push("/profile/$uid");
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-                shape: const StadiumBorder(),
-              ),
-              child: Text(
-                "Go to Profile",
-                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
-              ),
+              child: Text("Go to Profile"),
             ),
           ],
         );
@@ -261,37 +252,19 @@ class _HomeScreenState extends State<HomeScreen> {
       floating: true,
       backgroundColor: AppTheme.scaffoldBackground.withValues(alpha: 0.95),
       elevation: 0,
-      centerTitle: false,
-
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "LocalMart",
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.primary,
-              letterSpacing: -0.5,
-            ),
-          ),
+          Text("LocalMart", style: AppTheme.h2),
           Row(
             children: [
               Icon(Icons.location_on, size: 13, color: AppTheme.primary),
               const SizedBox(width: 4),
-              Text(
-                _locationName,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  color: AppTheme.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              Text(_locationName, style: AppTheme.caption),
             ],
           ),
         ],
       ),
-
       actions: [
         if (userId != null)
           StreamBuilder<int>(
@@ -299,142 +272,58 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (context, snapshot) {
               final unreadCount = snapshot.data ?? 0;
 
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Stack(
-                  alignment: Alignment.center,
+              return IconButton(
+                icon: Stack(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications_outlined),
-                      color: AppTheme.textPrimary,
-                      onPressed: () {
-                        context.push('/notifications');
-                      },
-                    ),
-
+                    const Icon(Icons.notifications_outlined),
                     if (unreadCount > 0)
                       Positioned(
-                        top: 8,
-                        right: 8,
+                        right: 0,
                         child: Container(
                           padding: const EdgeInsets.all(4),
-                          constraints: const BoxConstraints(
-                            minWidth: 18,
-                            minHeight: 18,
-                          ),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: Colors.red,
-                            borderRadius: BorderRadius.circular(999),
+                            shape: BoxShape.circle,
                           ),
                           child: Text(
-                            unreadCount > 99 ? '99+' : unreadCount.toString(),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            unreadCount.toString(),
+                            style: const TextStyle(fontSize: 10),
                           ),
                         ),
                       ),
                   ],
                 ),
+                onPressed: () => context.push('/notifications'),
               );
             },
           ),
-
         Padding(
-          padding: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppTheme.primary.withValues(alpha: 0.2),
-                width: 1.5,
-              ),
-            ),
-            child: _buildAvatarWidget(40),
+          padding: const EdgeInsets.only(right: 16),
+          child: CircleAvatar(
+            backgroundColor: AppTheme.border,
+            child: _avatar.isEmpty
+                ? const Icon(Icons.person)
+                : ClipOval(child: Image.memory(base64Decode(_avatar))),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildAvatarWidget(double size) {
-    if (_avatar.isEmpty) {
-      return Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppTheme.border.withValues(alpha: 0.5),
-        ),
-        child: Icon(
-          Icons.person_outline_rounded,
-          size: size * 0.5,
-          color: AppTheme.textSecondary,
-        ),
-      );
-    }
-    return ClipOval(
-      child: Image.memory(
-        base64Decode(_avatar),
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppTheme.border.withValues(alpha: 0.5),
-          ),
-          child: Icon(
-            Icons.person_outline_rounded,
-            size: size * 0.5,
-            color: AppTheme.textSecondary,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildSearchBar(BuildContext context) {
-    final isDark = AppTheme.isDark;
     return GestureDetector(
       onTap: () => context.push("/search"),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppTheme.surface.withValues(alpha: 0.95),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: isDark
-              ? []
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
         ),
         child: Row(
           children: [
-            Icon(Icons.search_rounded, color: AppTheme.textSecondary, size: 22),
+            Icon(Icons.search, color: AppTheme.textSecondary),
             const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                "Search electronics, fashion, home...",
-                style: GoogleFonts.plusJakartaSans(
-                  color: AppTheme.textSecondary.withValues(alpha: 0.7),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            Icon(Icons.tune_rounded, color: AppTheme.primary, size: 20),
+            Text("Search products...", style: AppTheme.body),
           ],
         ),
       ),
@@ -453,77 +342,19 @@ class _HomeScreenState extends State<HomeScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.textPrimary,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12,
-                color: AppTheme.textSecondary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            Text(title, style: AppTheme.h2),
+            Text(subtitle, style: AppTheme.caption),
           ],
         ),
         TextButton(
           onPressed: () => context.push("/products", extra: section),
-          style: TextButton.styleFrom(
-            backgroundColor: AppTheme.primaryLight,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            shape: const StadiumBorder(),
-          ),
-          child: Text(
-            "See All",
-            style: GoogleFonts.plusJakartaSans(
-              color: AppTheme.isDark
-                  ? const Color(0xFF4EDEA3)
-                  : AppTheme.primaryDark,
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
-            ),
-          ),
+          child: Text("See All"),
         ),
       ],
     );
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.storefront_outlined,
-            size: 64,
-            color: AppTheme.textSecondary,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            "No products found",
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            "Be the first to list something nearby!",
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
-              color: AppTheme.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
+    return Center(child: Text("No products found", style: AppTheme.body));
   }
 }

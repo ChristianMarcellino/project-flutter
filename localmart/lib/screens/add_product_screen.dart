@@ -106,7 +106,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         title: Text("Create Listing", style: AppTheme.h2),
         leading: IconButton(
           onPressed: () => context.pop(),
-          icon: const Icon(Icons.close),
+          icon: Icon(Icons.close, color: AppTheme.textPrimary),
         ),
       ),
       body: _isLoading
@@ -292,7 +292,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
         children: [
           Text(
             label,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: AppTheme.textPrimary,
+            ),
           ),
           const SizedBox(height: 8),
           TextFormField(
@@ -334,7 +338,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         children: [
           Text(
             label,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(

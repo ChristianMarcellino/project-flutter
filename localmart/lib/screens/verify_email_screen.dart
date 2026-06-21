@@ -72,7 +72,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                 Text('Verify Your Email', style: AppTheme.h1),
                 const SizedBox(height: 12),
                 Text(
-                  'Check your inbox for the verification link\nsent to ${authService.currentUser?.email}',
+                  'Check your inbox (or spam) for the verification link\nsent to ${authService.currentUser?.email}',
                   textAlign: TextAlign.center,
                   style: AppTheme.body,
                 ),

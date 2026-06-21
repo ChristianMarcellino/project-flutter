@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show ChangeNotifier;
 import 'package:localmart/constants.dart';
+import 'package:localmart/services/notif_service.dart';
 
 final AuthService authService = AuthService();
 
@@ -66,10 +67,14 @@ class AuthService extends ChangeNotifier {
     required String email,
     required String password,
   }) async {
-    return await firebaseAuth.signInWithEmailAndPassword(
+    final credential = await firebaseAuth.signInWithEmailAndPassword(
       email: email,
       password: password,
     );
+
+    await NotifService.registerFcmToken();
+
+    return credential;
   }
 
   Future<void> signOut() async {

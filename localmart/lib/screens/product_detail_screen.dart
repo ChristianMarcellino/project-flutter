@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:localmart/constants.dart';
 import 'package:localmart/models/product.dart';
 import 'package:localmart/services/auth_service.dart';
 import 'package:localmart/services/comment_service.dart';
@@ -25,23 +26,250 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final ProductService _productService = ProductService();
   final CommentService _commentService = CommentService();
-
   final TextEditingController _commentController = TextEditingController();
 
-  Future<void> _toggleLike(Product product) async {
-    final user = authService.currentUser;
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
 
-    if (user == null) return;
+  void _openManageProductSheet(BuildContext context, Product product) {
+    final titleController = TextEditingController(text: product.title);
+    final priceController = TextEditingController(
+      text: product.price.toString(),
+    );
+    final descController = TextEditingController(text: product.description);
+    String category = product.category;
 
-    final userProfile = await UserService.getUser(user.uid);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            decoration: AppTheme.cardDecoration.copyWith(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: StatefulBuilder(
+              builder: (context, setModalState) {
+                return SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 42,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: AppTheme.border.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ),
 
-    if (userProfile == null) return;
+                      const SizedBox(height: 16),
 
-    await _productService.toggleLike(
-      product: product,
-      userId: user.uid,
-      username: userProfile['username'] ?? 'User',
-      profilePicture: userProfile['avatar'],
+                      Text("Manage Product", style: AppTheme.h2),
+
+                      const SizedBox(height: 16),
+
+                      TextField(
+                        controller: titleController,
+                        style: TextStyle(color: AppTheme.textPrimary),
+                        decoration: AppTheme.inputDecoration(hintText: "Title"),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      TextField(
+                        controller: priceController,
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: AppTheme.textPrimary),
+                        decoration: AppTheme.inputDecoration(hintText: "Price"),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      TextField(
+                        controller: descController,
+                        maxLines: 3,
+                        style: TextStyle(color: AppTheme.textPrimary),
+                        decoration: AppTheme.inputDecoration(
+                          hintText: "Description",
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      DropdownButtonFormField<String>(
+                        value: category,
+                        dropdownColor: AppTheme.surface,
+                        style: TextStyle(color: AppTheme.textPrimary),
+                        items: AppConstants.categories
+                            .map(
+                              (c) => DropdownMenuItem(value: c, child: Text(c)),
+                            )
+                            .toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setModalState(() => category = val);
+                          }
+                        },
+                        decoration: AppTheme.inputDecoration(
+                          hintText: "Category",
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                          ),
+                          onPressed: () async {
+                            await ProductService().updateProduct(
+                              productId: product.id,
+                              title: titleController.text.trim(),
+                              description: descController.text.trim(),
+                              price:
+                                  double.tryParse(priceController.text) ??
+                                  product.price,
+                              category: category,
+                            );
+
+                            if (context.mounted) Navigator.pop(context);
+                          },
+                          child: const Text(
+                            "Save Changes",
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.primary,
+                            side: BorderSide(
+                              color: AppTheme.primary.withValues(alpha: 0.3),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          onPressed: () async {
+                            await ProductService().updateProduct(
+                              productId: product.id,
+                              status: product.status == 'available'
+                                  ? 'sold'
+                                  : 'available',
+                            );
+
+                            if (context.mounted) Navigator.pop(context);
+                          },
+                          child: Text(
+                            product.status == 'available'
+                                ? "Mark as Sold"
+                                : "Mark as Available",
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppTheme.error,
+                          ),
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                backgroundColor: AppTheme.surface,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                title: Text(
+                                  "Delete Product?",
+                                  style: TextStyle(color: AppTheme.textPrimary),
+                                ),
+                                content: Text(
+                                  "This action cannot be undone.",
+                                  style: TextStyle(
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: Text(
+                                      "Cancel",
+                                      style: TextStyle(
+                                        color: AppTheme.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppTheme.error,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    child: const Text("Delete"),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirm == true) {
+                              await ProductService().deleteProduct(product.id);
+
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                context.pop();
+                              }
+                            }
+                          },
+                          child: const Text(
+                            "Delete Product",
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -83,35 +311,25 @@ LocalMart - Shop Local, Save More!_
   }
 
   @override
-  void dispose() {
-    _commentController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return StreamBuilder<Product?>(
+      key: ValueKey(widget.productId),
       stream: _productService.streamProductById(widget.productId),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return Scaffold(
             backgroundColor: AppTheme.background,
-            body: Center(child: CircularProgressIndicator()),
+            body: const Center(child: CircularProgressIndicator()),
           );
         }
 
         final product = snapshot.data!;
 
-        final user = authService.currentUser;
-
-        final isLiked = user != null && product.likedBy.contains(user.uid);
-
         return Scaffold(
           backgroundColor: AppTheme.background,
-
           body: CustomScrollView(
             slivers: [
-              _buildAppBar(context, product, isLiked),
+              _buildAppBar(context, product),
 
               SliverToBoxAdapter(
                 child: Padding(
@@ -173,27 +391,6 @@ LocalMart - Shop Local, Save More!_
                           color: AppTheme.textSecondary,
                         ),
                       ),
-                      if (product.sellerId == authService.currentUser?.uid)
-                        ElevatedButton.icon(
-                          onPressed: () async {
-                            await ProductService().updateProductStatus(
-                              product,
-                              product.status == 'available'
-                                  ? 'sold'
-                                  : 'available',
-                            );
-                          },
-                          icon: Icon(
-                            product.status == 'available'
-                                ? Icons.check_circle
-                                : Icons.inventory_2,
-                          ),
-                          label: Text(
-                            product.status == 'available'
-                                ? 'Mark as Sold'
-                                : 'Mark as Available',
-                          ),
-                        ),
 
                       const SizedBox(height: 40),
 
@@ -211,14 +408,13 @@ LocalMart - Shop Local, Save More!_
               ),
             ],
           ),
-
           bottomNavigationBar: _buildBottomBar(product),
         );
       },
     );
   }
 
-  Widget _buildAppBar(BuildContext context, Product product, bool isLiked) {
+  Widget _buildAppBar(BuildContext context, Product product) {
     return SliverAppBar(
       expandedHeight: 400,
       pinned: true,
@@ -231,9 +427,9 @@ LocalMart - Shop Local, Save More!_
             color: Colors.black26,
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: Colors.white,
+            color: AppTheme.textPrimary,
             size: 18,
           ),
         ),
@@ -262,21 +458,7 @@ LocalMart - Shop Local, Save More!_
           ),
           onPressed: () => _shareProduct(product),
         ),
-        IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: Colors.black26,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-              color: isLiked ? AppTheme.error : Colors.white,
-              size: 20,
-            ),
-          ),
-          onPressed: () => _toggleLike(product),
-        ),
+        _LikeButton(product: product),
       ],
 
       flexibleSpace: FlexibleSpaceBar(
@@ -343,7 +525,6 @@ LocalMart - Shop Local, Save More!_
         }
 
         final seller = snapshot.data!;
-
         final avatar = seller["avatar"]?.toString() ?? "";
 
         return Container(
@@ -399,12 +580,26 @@ LocalMart - Shop Local, Save More!_
                   ],
                 ),
               ),
-              InkWell(
-                onTap: () {
-                  context.push('/profile/${product.sellerId}');
-                },
-                child: const Icon(Icons.arrow_back_ios, size: 20),
-              ),
+              if (product.sellerId == authService.currentUser?.uid) ...[
+                const SizedBox(height: 12),
+
+                OutlinedButton.icon(
+                  onPressed: () => _openManageProductSheet(context, product),
+                  icon: const Icon(Icons.settings),
+                  label: const Text("Manage Product"),
+                ),
+              ] else ...[
+                InkWell(
+                  onTap: () {
+                    context.push('/profile/${product.sellerId}');
+                  },
+                  child: Icon(
+                    Icons.arrow_back_ios,
+                    size: 20,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ],
             ],
           ),
         );
@@ -454,7 +649,6 @@ LocalMart - Shop Local, Save More!_
               if (_commentController.text.trim().isEmpty) return;
 
               final text = _commentController.text.trim();
-
               _commentController.clear();
 
               await _commentService.addComment(product: product, text: text);
@@ -481,13 +675,13 @@ LocalMart - Shop Local, Save More!_
         final docs = snapshot.data!.docs;
 
         return ListView.separated(
+          padding: EdgeInsets.zero,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: docs.length,
           separatorBuilder: (_, _) => const SizedBox(height: 16),
           itemBuilder: (context, index) {
             final commentDoc = docs[index];
-
             final data = commentDoc.data() as Map<String, dynamic>;
 
             return _CommentTile(
@@ -539,6 +733,134 @@ LocalMart - Shop Local, Save More!_
   }
 }
 
+class _LikeButton extends StatefulWidget {
+  final Product product;
+
+  const _LikeButton({required this.product});
+
+  @override
+  State<_LikeButton> createState() => _LikeButtonState();
+}
+
+class _LikeButtonState extends State<_LikeButton>
+    with SingleTickerProviderStateMixin {
+  final ProductService _productService = ProductService();
+
+  late bool _isLiked;
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final user = authService.currentUser;
+    _isLiked = user != null && widget.product.likedBy.contains(user.uid);
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 1.5,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 40,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 1.5,
+          end: 0.85,
+        ).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 30,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 0.85,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.elasticOut)),
+        weight: 30,
+      ),
+    ]).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _toggle() async {
+    final user = authService.currentUser;
+    if (user == null) return;
+
+    final userProfile = await UserService.getUser(user.uid);
+    if (userProfile == null) return;
+
+    final wasLiked = _isLiked;
+
+    setState(() {
+      _isLiked = !wasLiked;
+    });
+
+    _controller.forward(from: 0);
+
+    try {
+      await _productService.toggleLike(
+        product: widget.product,
+        userId: user.uid,
+        username: userProfile['username'] ?? 'User',
+        profilePicture: userProfile['avatar'],
+      );
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLiked = wasLiked;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: const BoxDecoration(
+          color: Colors.black26,
+          shape: BoxShape.circle,
+        ),
+        child: AnimatedBuilder(
+          animation: _scaleAnimation,
+          builder: (context, _) {
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, animation) {
+                  return ScaleTransition(scale: animation, child: child);
+                },
+                child: Icon(
+                  _isLiked
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  key: ValueKey(_isLiked),
+                  color: _isLiked ? AppTheme.error : Colors.white,
+                  size: 20,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+      onPressed: _toggle,
+    );
+  }
+}
+
 class _CommentTile extends StatefulWidget {
   final Product product;
   final String commentId;
@@ -558,7 +880,6 @@ class _CommentTileState extends State<_CommentTile> {
   bool showReplies = false;
 
   final CommentService _commentService = CommentService();
-
   final TextEditingController _replyController = TextEditingController();
 
   bool showReplyField = false;
@@ -588,7 +909,6 @@ class _CommentTileState extends State<_CommentTile> {
               InkWell(
                 onTap: () {
                   final uid = data['userId'];
-
                   if (uid != null) {
                     context.push('/profile/$uid');
                   }
@@ -622,7 +942,6 @@ class _CommentTileState extends State<_CommentTile> {
                     GestureDetector(
                       onTap: () {
                         final uid = data['userId'];
-
                         if (uid != null) {
                           context.push('/profile/$uid');
                         }
@@ -760,7 +1079,6 @@ class _CommentTileState extends State<_CommentTile> {
                               InkWell(
                                 onTap: () {
                                   final uid = reply['userId'];
-
                                   if (uid != null) {
                                     context.push('/profile/$uid');
                                   }
@@ -774,13 +1092,13 @@ class _CommentTileState extends State<_CommentTile> {
                                               .isNotEmpty
                                       ? Image.memory(
                                           base64Decode(reply['userAvatar']),
-                                          width: 28,
-                                          height: 28,
+                                          width: 36,
+                                          height: 36,
                                           fit: BoxFit.cover,
                                         )
                                       : Container(
-                                          width: 50,
-                                          height: 50,
+                                          width: 36,
+                                          height: 36,
                                           color: AppTheme.border,
                                           child: const Icon(Icons.person),
                                         ),
@@ -803,7 +1121,6 @@ class _CommentTileState extends State<_CommentTile> {
                                       GestureDetector(
                                         onTap: () {
                                           final uid = reply['userId'];
-
                                           if (uid != null) {
                                             context.push('/profile/$uid');
                                           }

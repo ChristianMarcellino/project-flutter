@@ -51,4 +51,22 @@ class UserService {
           }).toList(),
         );
   }
+
+  static Future<void> updateProfile(
+    String uid, {
+    String? username,
+    String? bio,
+    String? phoneNumber,
+  }) async {
+    final data = <String, dynamic>{'updatedAt': FieldValue.serverTimestamp()};
+
+    if (username != null) data['username'] = username;
+    if (bio != null) data['bio'] = bio;
+    if (phoneNumber != null) data['phoneNumber'] = phoneNumber;
+
+    await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .set(data, SetOptions(merge: true));
+  }
 }

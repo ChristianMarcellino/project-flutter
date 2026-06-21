@@ -60,7 +60,7 @@ class ProductService {
   }
 
   Stream<List<Product>> getAllProducts() {
-    return productsRef.snapshots().map((snapshot) {
+    return productsRef.where("status", isEqualTo: "available").snapshots().map((snapshot) {
       return snapshot.docs
           .map(
             (doc) =>
@@ -98,21 +98,55 @@ class ProductService {
     });
   }
 
-  Future<void> updateProductStatus(Product product, String status) async {
-    final currentUser = authService.currentUser;
+  Future<void> updateProduct({
+    required String productId,
+    String? title,
+    String? description,
+    double? price,
+    String? category,
+    String? status,
+  }) async {
+    final user = authService.currentUser;
+    if (user == null) throw Exception("User not logged in");
 
-    if (currentUser == null) {
-      throw Exception('User not logged in');
+    final doc = await productsRef.doc(productId).get();
+
+    if (!doc.exists) throw Exception("Product not found");
+
+    final data = doc.data() as Map<String, dynamic>;
+
+    if (data['sellerId'] != user.uid) {
+      throw Exception("Only seller can update product");
     }
 
-    if (product.sellerId != currentUser.uid) {
-      throw Exception('Only seller can update status');
-    }
-
-    await productsRef.doc(product.id).update({
-      'status': status,
+    final updates = <String, dynamic>{
       'updatedAt': FieldValue.serverTimestamp(),
-    });
+    };
+
+    if (title != null) updates['title'] = title;
+    if (description != null) updates['description'] = description;
+    if (price != null) updates['price'] = price;
+    if (category != null) updates['category'] = category;
+    if (status != null) updates['status'] = status;
+
+    await productsRef.doc(productId).update(updates);
+  }
+
+  Future<void> deleteProduct(String productId) async {
+    final user = authService.currentUser;
+    if (user == null) throw Exception("User not logged in");
+
+    final doc = await productsRef.doc(productId).get();
+
+    if (!doc.exists) throw Exception("Product not found");
+
+    final data = doc.data() as Map<String, dynamic>;
+
+    if (data['sellerId'] != user.uid) {
+      throw Exception("Only seller can delete product");
+    }
+
+    await productsRef.doc(productId).delete();
   }
 
   Future<void> toggleLike({
