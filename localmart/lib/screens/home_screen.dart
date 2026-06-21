@@ -299,12 +299,30 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         Padding(
           padding: const EdgeInsets.only(right: 16),
-          child: CircleAvatar(
-            backgroundColor: AppTheme.border,
-            child: _avatar.isEmpty
-                ? const Icon(Icons.person)
-                : ClipOval(child: Image.memory(base64Decode(_avatar))),
-          ),
+          child: ClipRRect(
+                borderRadius: BorderRadius.circular(100),
+                child: _avatar.isNotEmpty
+                    ? Image.memory(
+                        base64Decode(_avatar),
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) {
+                          return Container(
+                            width: 40,
+                            height: 40,
+                            color: AppTheme.border,
+                            child: const Icon(Icons.person),
+                          );
+                        },
+                      )
+                    : Container(
+                        width: 40,
+                        height: 40,
+                        color: AppTheme.border,
+                        child: const Icon(Icons.person),
+                      ),
+              ),
         ),
       ],
     );
